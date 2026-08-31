@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hr_attendance_app/core/router/app_routes.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_date_formatter.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_top_bar.dart';
-import '../../../employee/presentation/pages/employee_list_page.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/notification_tile.dart';
 import '../widgets/quick_action_button.dart';
@@ -33,8 +34,10 @@ class _DashboardView extends StatelessWidget {
       appBar: const AppTopBar(title: 'شؤون العاملين'),
       body: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
-          if (state.status == DashboardStatus.loading || state.status == DashboardStatus.initial) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+          if (state.status == DashboardStatus.loading ||
+              state.status == DashboardStatus.initial) {
+            return const Center(
+                child: CircularProgressIndicator(color: AppColors.gold));
           }
           if (state.status == DashboardStatus.failure) {
             return _ErrorView(
@@ -137,9 +140,7 @@ class _DashboardView extends StatelessWidget {
                       icon: Icons.groups_outlined,
                       iconColor: AppColors.gold,
                       label: 'قائمة الموظفين',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const EmployeeListPage()),
-                      ),
+                      onTap: () => context.push(AppRoutes.employees),
                     ),
                     const QuickActionButton(
                       icon: Icons.fingerprint,
@@ -178,16 +179,19 @@ class _DashboardView extends StatelessWidget {
                         const Text(
                           'تنبيهات',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                         const Divider(height: 24),
                         if (state.notifications.isEmpty)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8),
-                            child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.textMuted)),
+                            child: Text('لا توجد تنبيهات حالياً',
+                                style: TextStyle(color: AppColors.textMuted)),
                           )
                         else
-                          ...state.notifications.map((n) => NotificationTile(notification: n)),
+                          ...state.notifications
+                              .map((n) => NotificationTile(notification: n)),
                       ],
                     ),
                   ),
@@ -201,9 +205,7 @@ class _DashboardView extends StatelessWidget {
       bottomNavigationBar: AppBottomNav(
         currentIndex: 2,
         onTap: (i) {
-          if (i == 3) {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EmployeeListPage()));
-          }
+          if (i == 3) context.push(AppRoutes.employees);
         },
       ),
     );
@@ -229,7 +231,8 @@ class _DatePickerChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(ArabicDateFormatter.full(date), style: const TextStyle(color: AppColors.textSecondary)),
+            Text(ArabicDateFormatter.full(date),
+                style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(width: 8),
             const Icon(Icons.calendar_today, size: 15, color: AppColors.gold),
           ],
@@ -254,9 +257,12 @@ class _ErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.wifi_off, color: AppColors.textMuted, size: 48),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
+            ElevatedButton(
+                onPressed: onRetry, child: const Text('إعادة المحاولة')),
           ],
         ),
       ),

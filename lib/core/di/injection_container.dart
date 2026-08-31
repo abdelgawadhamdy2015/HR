@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:hr_attendance_app/core/storage/onboarding_storage.dart';
 import 'package:hr_attendance_app/core/storage/token_storage.dart';
 import 'package:hr_attendance_app/features/auth/data/datasources/auth_datasource.dart';
 
@@ -45,6 +46,7 @@ Future<void> initDependencies() async {
   // --- Auth feature ---
   // Auth Data Source / Fetcher Registration
   sl.registerLazySingleton<AuthDataSource>(() => AuthDataSource(sl<Dio>()));
+  sl.registerLazySingleton<OnboardingStorage>(() => OnboardingStorage());
   sl.registerLazySingleton<TokenStorage>(() => TokenStorage());
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(

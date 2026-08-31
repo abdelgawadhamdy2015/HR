@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hr_attendance_app/core/router/app_routes.dart';
 import 'package:hr_attendance_app/features/auth/data/models/auth_request_models.dart';
 import 'package:hr_attendance_app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:hr_attendance_app/features/auth/presentation/cubit/auth_state.dart';
-
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -103,11 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    );
-                  },
+                  onPressed: () => context.push(AppRoutes.register),
                   child: const Text("Don't have an account? Register"),
                 ),
               ],
