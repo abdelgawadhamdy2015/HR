@@ -3,10 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hr_attendance_app/core/storage/onboarding_storage.dart';
 import 'package:hr_attendance_app/core/storage/token_storage.dart';
 import 'package:hr_attendance_app/features/auth/data/datasources/auth_datasource.dart';
-
 import '../network/dio_client.dart';
-
-// Auth feature
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
@@ -14,16 +11,12 @@ import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
-
-// Dashboard feature
 import '../../features/dashboard/data/datasources/dashboard_remote_data_source.dart';
 import '../../features/dashboard/data/repositories/dashboard_repository_impl.dart';
 import '../../features/dashboard/domain/repositories/dashboard_repository.dart';
 import '../../features/dashboard/domain/usecases/get_dashboard_stats.dart';
 import '../../features/dashboard/domain/usecases/get_notifications.dart';
 import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
-
-// Employee feature
 import '../../features/employee/data/datasources/employee_remote_data_source.dart';
 import '../../features/employee/data/repositories/employee_repository_impl.dart';
 import '../../features/employee/domain/repositories/employee_repository.dart';
@@ -36,11 +29,12 @@ import '../../features/employee/domain/usecases/get_missions.dart';
 import '../../features/employee/domain/usecases/get_permissions.dart';
 import '../../features/employee/presentation/cubit/employee_details_cubit.dart';
 import '../../features/employee/presentation/cubit/employee_list_cubit.dart';
-
-// Attendance feature (check-in/out, mark day, lateness, mission, إذن)
 import '../../features/attendance/data/datasources/attendance_actions_remote_data_source.dart';
+import '../../features/attendance/data/datasources/attendance_reports_remote_data_source.dart';
 import '../../features/attendance/data/repositories/attendance_actions_repository_impl.dart';
+import '../../features/attendance/data/repositories/attendance_reports_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_actions_repository.dart';
+import '../../features/attendance/domain/repositories/attendance_reports_repository.dart';
 import '../../features/attendance/domain/usecases/check_in.dart';
 import '../../features/attendance/domain/usecases/check_out.dart';
 import '../../features/attendance/domain/usecases/create_mission.dart';
@@ -48,58 +42,29 @@ import '../../features/attendance/domain/usecases/create_permission_request.dart
 import '../../features/attendance/domain/usecases/mark_attendance_day.dart';
 import '../../features/attendance/domain/usecases/record_lateness.dart';
 import '../../features/attendance/presentation/cubit/attendance_actions_cubit.dart';
+import '../../features/attendance/presentation/cubit/attendance_reports_cubit.dart';
 
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
-  // --- Core ---
   sl.registerLazySingleton<DioClient>(() => DioClient());
   sl.registerLazySingleton<Dio>(() => sl<DioClient>().dio);
-
-  // --- Auth feature ---
-  // Auth Data Source / Fetcher Registration
   sl.registerLazySingleton<AuthDataSource>(() => AuthDataSource(sl<Dio>()));
   sl.registerLazySingleton<OnboardingStorage>(() => OnboardingStorage());
   sl.registerLazySingleton<TokenStorage>(() => TokenStorage());
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-        datasource: sl<AuthDataSource>(), tokenStorage: sl<TokenStorage>()),
-  );
+  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(datasource: sl<AuthDataSource>(), tokenStorage: sl<TokenStorage>()));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
-
-  // Registered as lazy singleton so auth state remains consistent app-wide
-  sl.registerLazySingleton<AuthCubit>(
-    () => AuthCubit(
-      loginUseCase: sl(),
-      registerUseCase: sl(),
-      logoutUseCase: sl(),
-      getCurrentUserUseCase: sl(),
-    ),
-  );
-
-  // --- Dashboard feature ---
-  sl.registerLazySingleton<DashboardRemoteDataSource>(
-    () => DashboardRemoteDataSourceImpl(sl()),
-  );
-  sl.registerLazySingleton<DashboardRepository>(
-    () => DashboardRepositoryImpl(sl()),
-  );
+  sl.registerLazySingleton<AuthCubit>(() => AuthCubit(loginUseCase: sl(), registerUseCase: sl(), logoutUseCase: sl(), getCurrentUserUseCase: sl()));
+  sl.registerLazySingleton<DashboardRemoteDataSource>(() => DashboardRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetDashboardStats(sl()));
   sl.registerLazySingleton(() => GetNotifications(sl()));
-  sl.registerFactory(
-    () => DashboardCubit(getDashboardStats: sl(), getNotifications: sl()),
-  );
-
-  // --- Employee feature ---
-  sl.registerLazySingleton<EmployeeRemoteDataSource>(
-    () => EmployeeRemoteDataSourceImpl(sl()),
-  );
-  sl.registerLazySingleton<EmployeeRepository>(
-    () => EmployeeRepositoryImpl(sl()),
-  );
+  sl.registerFactory(() => DashboardCubit(getDashboardStats: sl(), getNotifications: sl()));
+  sl.registerLazySingleton<EmployeeRemoteDataSource>(() => EmployeeRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<EmployeeRepository>(() => EmployeeRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetEmployees(sl()));
   sl.registerLazySingleton(() => CreateEmployee(sl()));
   sl.registerLazySingleton(() => GetEmployeeById(sl()));
@@ -107,44 +72,18 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => GetMissions(sl()));
   sl.registerLazySingleton(() => GetPermissions(sl()));
   sl.registerLazySingleton(() => GetLateness(sl()));
-
-  sl.registerFactory(() => EmployeeListCubit(
-        getEmployees: sl(),
-        createEmployeeUseCase: sl(),
-      ));
-
-  // EmployeeDetailsCubit needs the employeeId at creation time -> factoryParam
-  sl.registerFactoryParam<EmployeeDetailsCubit, int, void>(
-    (employeeId, _) => EmployeeDetailsCubit(
-      employeeId: employeeId,
-      getEmployeeById: sl(),
-      getEmployeeMonthDetails: sl(),
-      getMissions: sl(),
-      getPermissions: sl(),
-      getLateness: sl(),
-    ),
-  );
-
-  // --- Attendance feature ---
-  sl.registerLazySingleton<AttendanceActionsRemoteDataSource>(
-    () => AttendanceActionsRemoteDataSourceImpl(sl()),
-  );
-  sl.registerLazySingleton<AttendanceActionsRepository>(
-    () => AttendanceActionsRepositoryImpl(sl()),
-  );
+  sl.registerFactory(() => EmployeeListCubit(getEmployees: sl(), createEmployeeUseCase: sl()));
+  sl.registerFactoryParam<EmployeeDetailsCubit, int, void>((employeeId, _) => EmployeeDetailsCubit(employeeId: employeeId, getEmployeeById: sl(), getEmployeeMonthDetails: sl(), getMissions: sl(), getPermissions: sl(), getLateness: sl()));
+  sl.registerLazySingleton<AttendanceActionsRemoteDataSource>(() => AttendanceActionsRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<AttendanceActionsRepository>(() => AttendanceActionsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => CheckIn(sl()));
   sl.registerLazySingleton(() => CheckOut(sl()));
   sl.registerLazySingleton(() => MarkAttendanceDay(sl()));
   sl.registerLazySingleton(() => RecordLateness(sl()));
   sl.registerLazySingleton(() => CreateMission(sl()));
   sl.registerLazySingleton(() => CreatePermissionRequest(sl()));
-
-  sl.registerFactory(() => AttendanceActionsCubit(
-        checkInUseCase: sl(),
-        checkOutUseCase: sl(),
-        markAttendanceDayUseCase: sl(),
-        recordLatenessUseCase: sl(),
-        createMissionUseCase: sl(),
-        createPermissionRequestUseCase: sl(),
-      ));
+  sl.registerFactory(() => AttendanceActionsCubit(checkInUseCase: sl(), checkOutUseCase: sl(), markAttendanceDayUseCase: sl(), recordLatenessUseCase: sl(), createMissionUseCase: sl(), createPermissionRequestUseCase: sl()));
+  sl.registerLazySingleton<AttendanceReportsRemoteDataSource>(() => AttendanceReportsRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<AttendanceReportsRepository>(() => AttendanceReportsRepositoryImpl(sl()));
+  sl.registerFactory(() => AttendanceReportsCubit(sl()));
 }
