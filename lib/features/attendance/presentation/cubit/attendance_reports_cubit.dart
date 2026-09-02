@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failures.dart';
-import '../../../../core/utils/result.dart';
 import '../../data/models/attendance_report_models.dart';
 import '../../domain/repositories/attendance_reports_repository.dart';
 import 'attendance_reports_state.dart';
@@ -14,18 +13,18 @@ class AttendanceReportsCubit extends Cubit<AttendanceReportsState> {
   Future<void> loadReport(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getReport(request);
-    result.when(
-      success: (data) => emit(AttendanceReportsLoaded(data)),
-      error: (failure) => emit(AttendanceReportsError(_message(failure))),
+    result.fold(
+      (failure) => emit(AttendanceReportsError(_message(failure))),
+      (data) => emit(AttendanceReportsLoaded(data)),
     );
   }
 
   Future<void> loadActions(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getActions(request);
-    result.when(
-      success: (data) => emit(AttendanceReportsActionsLoaded(data)),
-      error: (failure) => emit(AttendanceReportsError(_message(failure))),
+    result.fold(
+      (failure) => emit(AttendanceReportsError(_message(failure))),
+      (data) => emit(AttendanceReportsActionsLoaded(data)),
     );
   }
 
@@ -33,12 +32,12 @@ class AttendanceReportsCubit extends Cubit<AttendanceReportsState> {
     emit(const AttendanceReportsLoading());
     final result = await repository.getPdf(request);
     List<int>? bytes;
-    result.when(
-      success: (data) {
+    result.fold(
+      (failure) => emit(AttendanceReportsError(_message(failure))),
+      (data) {
         bytes = data;
         emit(AttendanceReportsPdfLoaded(data));
       },
-      error: (failure) => emit(AttendanceReportsError(_message(failure))),
     );
     return bytes;
   }
