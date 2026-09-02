@@ -7,6 +7,7 @@ class AppRoutes {
   static const register = '/register';
   static const home = '/home';
   static const employees = '/employees';
+  static const attendanceActions = '/attendance-actions';
 
   static String employeeDetails(int id) => '/employees/$id';
 }

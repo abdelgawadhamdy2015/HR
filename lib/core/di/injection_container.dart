@@ -27,6 +27,7 @@ import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import '../../features/employee/data/datasources/employee_remote_data_source.dart';
 import '../../features/employee/data/repositories/employee_repository_impl.dart';
 import '../../features/employee/domain/repositories/employee_repository.dart';
+import '../../features/employee/domain/usecases/create_employee.dart';
 import '../../features/employee/domain/usecases/get_employee_by_id.dart';
 import '../../features/employee/domain/usecases/get_employee_month_details.dart';
 import '../../features/employee/domain/usecases/get_employees.dart';
@@ -35,6 +36,18 @@ import '../../features/employee/domain/usecases/get_missions.dart';
 import '../../features/employee/domain/usecases/get_permissions.dart';
 import '../../features/employee/presentation/cubit/employee_details_cubit.dart';
 import '../../features/employee/presentation/cubit/employee_list_cubit.dart';
+
+// Attendance feature (check-in/out, mark day, lateness, mission, إذن)
+import '../../features/attendance/data/datasources/attendance_actions_remote_data_source.dart';
+import '../../features/attendance/data/repositories/attendance_actions_repository_impl.dart';
+import '../../features/attendance/domain/repositories/attendance_actions_repository.dart';
+import '../../features/attendance/domain/usecases/check_in.dart';
+import '../../features/attendance/domain/usecases/check_out.dart';
+import '../../features/attendance/domain/usecases/create_mission.dart';
+import '../../features/attendance/domain/usecases/create_permission_request.dart';
+import '../../features/attendance/domain/usecases/mark_attendance_day.dart';
+import '../../features/attendance/domain/usecases/record_lateness.dart';
+import '../../features/attendance/presentation/cubit/attendance_actions_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -88,13 +101,17 @@ Future<void> initDependencies() async {
     () => EmployeeRepositoryImpl(sl()),
   );
   sl.registerLazySingleton(() => GetEmployees(sl()));
+  sl.registerLazySingleton(() => CreateEmployee(sl()));
   sl.registerLazySingleton(() => GetEmployeeById(sl()));
   sl.registerLazySingleton(() => GetEmployeeMonthDetails(sl()));
   sl.registerLazySingleton(() => GetMissions(sl()));
   sl.registerLazySingleton(() => GetPermissions(sl()));
   sl.registerLazySingleton(() => GetLateness(sl()));
 
-  sl.registerFactory(() => EmployeeListCubit(getEmployees: sl()));
+  sl.registerFactory(() => EmployeeListCubit(
+        getEmployees: sl(),
+        createEmployeeUseCase: sl(),
+      ));
 
   // EmployeeDetailsCubit needs the employeeId at creation time -> factoryParam
   sl.registerFactoryParam<EmployeeDetailsCubit, int, void>(
@@ -107,4 +124,27 @@ Future<void> initDependencies() async {
       getLateness: sl(),
     ),
   );
+
+  // --- Attendance feature ---
+  sl.registerLazySingleton<AttendanceActionsRemoteDataSource>(
+    () => AttendanceActionsRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<AttendanceActionsRepository>(
+    () => AttendanceActionsRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(() => CheckIn(sl()));
+  sl.registerLazySingleton(() => CheckOut(sl()));
+  sl.registerLazySingleton(() => MarkAttendanceDay(sl()));
+  sl.registerLazySingleton(() => RecordLateness(sl()));
+  sl.registerLazySingleton(() => CreateMission(sl()));
+  sl.registerLazySingleton(() => CreatePermissionRequest(sl()));
+
+  sl.registerFactory(() => AttendanceActionsCubit(
+        checkInUseCase: sl(),
+        checkOutUseCase: sl(),
+        markAttendanceDayUseCase: sl(),
+        recordLatenessUseCase: sl(),
+        createMissionUseCase: sl(),
+        createPermissionRequestUseCase: sl(),
+      ));
 }

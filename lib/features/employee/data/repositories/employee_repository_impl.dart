@@ -20,6 +20,12 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
       return Error(NetworkFailure(e.message));
     } on NotFoundException catch (e) {
       return Error(NotFoundFailure(e.message));
+    } on ConflictException catch (e) {
+      return Error(ConflictFailure(e.message));
+    } on ValidationException catch (e) {
+      return Error(ValidationFailure(e.message));
+    } on ForbiddenException catch (e) {
+      return Error(ForbiddenFailure(e.message));
     } on ServerException catch (e) {
       return Error(ServerFailure(e.message));
     } catch (_) {
@@ -32,6 +38,22 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
 
   @override
   Future<Result<Employee>> getEmployeeById(int id) => _guard(() => remoteDataSource.getEmployeeById(id));
+
+  @override
+  Future<Result<Employee>> createEmployee({
+    required String code,
+    required String fullName,
+    required String jobTitle,
+    required String department,
+    String? avatarUrl,
+  }) =>
+      _guard(() => remoteDataSource.createEmployee({
+            'code': code,
+            'fullName': fullName,
+            'jobTitle': jobTitle,
+            'department': department,
+            'avatarUrl': avatarUrl,
+          }));
 
   @override
   Future<Result<EmployeeMonthDetails>> getMonthDetails(int employeeId, int year, int month) =>

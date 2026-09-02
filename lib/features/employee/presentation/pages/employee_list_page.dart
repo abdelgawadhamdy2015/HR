@@ -7,6 +7,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../cubit/employee_list_cubit.dart';
+import '../screens/add_employee_screen.dart';
 
 class EmployeeListPage extends StatelessWidget {
   const EmployeeListPage({super.key});
@@ -27,6 +28,20 @@ class _EmployeeListView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const AppTopBar(title: 'قائمة الموظفين'),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.gold,
+        // Reuse the same EmployeeListCubit instance so a successful create
+        // triggers loadEmployees() and this list refreshes automatically.
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              value: context.read<EmployeeListCubit>(),
+              child: const AddEmployeeScreen(),
+            ),
+          ),
+        ),
+        child: const Icon(Icons.person_add_alt_1, color: AppColors.background),
+      ),
       body: Column(
         children: [
           Padding(

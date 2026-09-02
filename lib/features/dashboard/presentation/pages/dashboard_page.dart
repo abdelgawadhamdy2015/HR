@@ -28,6 +28,12 @@ class DashboardPage extends StatelessWidget {
 class _DashboardView extends StatelessWidget {
   const _DashboardView();
 
+  // Tab indices inside AttendanceActionsScreen:
+  // 0 حضور/انصراف, 1 إجازة/انقطاع, 2 تصحيح تأخير, 3 مأمورية, 4 إذن.
+  void _openAttendanceActions(BuildContext context, int tab) {
+    context.push('${AppRoutes.attendanceActions}?tab=$tab');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,30 +148,35 @@ class _DashboardView extends StatelessWidget {
                       label: 'قائمة الموظفين',
                       onTap: () => context.push(AppRoutes.employees),
                     ),
-                    const QuickActionButton(
+                    QuickActionButton(
                       icon: Icons.fingerprint,
                       iconColor: AppColors.gold,
                       label: 'تسجيل حضور',
+                      onTap: () => _openAttendanceActions(context, 0),
                     ),
-                    const QuickActionButton(
+                    QuickActionButton(
                       icon: Icons.access_time,
                       iconColor: AppColors.gold,
                       label: 'التأخيرات',
+                      onTap: () => _openAttendanceActions(context, 2),
                     ),
-                    const QuickActionButton(
+                    QuickActionButton(
                       icon: Icons.beach_access,
                       iconColor: AppColors.gold,
                       label: 'الإجازات',
+                      onTap: () => _openAttendanceActions(context, 1),
                     ),
-                    const QuickActionButton(
+                    QuickActionButton(
                       icon: Icons.edit_note,
                       iconColor: AppColors.gold,
                       label: 'الإذن',
+                      onTap: () => _openAttendanceActions(context, 4),
                     ),
-                    const QuickActionButton(
+                    QuickActionButton(
                       icon: Icons.flight,
                       iconColor: AppColors.gold,
                       label: 'المأموريات',
+                      onTap: () => _openAttendanceActions(context, 3),
                     ),
                   ],
                 ),
