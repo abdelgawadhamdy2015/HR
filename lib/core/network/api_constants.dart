@@ -29,18 +29,27 @@ class ApiConstants {
   static String employeePermissions(int id) => '/employees/$id/permissions';
   static String employeeLateness(int id) => '/employees/$id/lateness';
 
-  // Attendance actions (تسجيل حضور / انصراف / إجازة / انقطاع / تصحيح تأخير)
+  // Attendance actions
   static const String attendanceCheckIn = '/attendance/checkin';
   static const String attendanceCheckOut = '/attendance/checkout';
   static const String attendanceMark = '/attendance/mark';
   static const String attendanceLateness = '/attendance/lateness';
 
-  // Missions (مأمورية)
+  // Attendance reports
+  static const String attendanceReports = '/AttendanceReports';
+  static const String attendanceReportPdf = '/AttendanceReports/pdf';
+  static const String attendanceReportActions = '/AttendanceReports/actions';
+  static const String attendanceReportDaily = '/AttendanceReports/daily';
+  static const String attendanceReportLate = '/AttendanceReports/late';
+  static String attendanceReportEmployee(int id) => '/AttendanceReports/employee/$id';
+  static String attendanceReportEmployeePdf(int id) => '/AttendanceReports/pdf/employee/$id';
+
+  // Missions
   static const String missions = '/missions';
 
-  // Permission requests (إذن) — distinct from `permissions` (RBAC) above
+  // Permission requests
   static const String permissionRequests = '/permission-requests';
 
   static const Duration connectTimeout = Duration(seconds: 10);
-  static const Duration receiveTimeout = Duration(seconds: 10);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 }
