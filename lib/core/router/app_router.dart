@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_actions_screen.dart';
-import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_reports_screen.dart';
+import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_reports_tab_screen.dart';
 import 'package:hr_attendance_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 
 import '../storage/onboarding_storage.dart';
@@ -45,7 +45,7 @@ class AppRouter {
         GoRoute(path: AppRoutes.employees, builder: (context, state) => const EmployeeListPage()),
         GoRoute(path: '/employees/:id', builder: (context, state) => EmployeeDetailsPage(employeeId: int.parse(state.pathParameters['id']!))),
         GoRoute(path: AppRoutes.attendanceActions, builder: (context, state) => AttendanceActionsScreen(initialTabIndex: int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0)),
-        GoRoute(path: AppRoutes.attendanceReports, builder: (context, state) => const AttendanceReportsScreen()),
+        GoRoute(path: AppRoutes.attendanceReports, builder: (context, state) => const AttendanceReportsTabScreen()),
       ],
     );
   }
