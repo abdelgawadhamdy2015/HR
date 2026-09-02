@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_actions_screen.dart';
+import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_reports_screen.dart';
 import 'package:hr_attendance_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 
 import '../storage/onboarding_storage.dart';
@@ -17,77 +18,34 @@ import 'go_router_refresh_stream.dart';
 class AppRouter {
   AppRouter._();
 
-  static GoRouter build({
-    required AuthCubit authCubit,
-    required OnboardingStorage onboardingStorage,
-  }) {
+  static GoRouter build({required AuthCubit authCubit, required OnboardingStorage onboardingStorage}) {
     return GoRouter(
       initialLocation: AppRoutes.splash,
       refreshListenable: GoRouterRefreshStream(authCubit.stream),
       redirect: (context, state) async {
         final loc = state.matchedLocation;
         final authStatus = authCubit.state.status;
-
-        // Session restore still in flight -> park on splash.
-        if (authStatus == AuthStatus.initial ||
-            authStatus == AuthStatus.loading) {
-          return loc == AppRoutes.splash ? null : AppRoutes.splash;
-        }
-
+        if (authStatus == AuthStatus.initial || authStatus == AuthStatus.loading) return loc == AppRoutes.splash ? null : AppRoutes.splash;
         final authenticated = authStatus == AuthStatus.authenticated;
-        final onAuthScreen =
-            loc == AppRoutes.login || loc == AppRoutes.register;
-
+        final onAuthScreen = loc == AppRoutes.login || loc == AppRoutes.register;
         if (!authenticated) {
           final onboardingDone = await onboardingStorage.isComplete();
-          if (!onboardingDone) {
-            return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
-          }
+          if (!onboardingDone) return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
           return onAuthScreen ? null : AppRoutes.login;
         }
-
-        // Authenticated: never let them sit on splash/onboarding/login/register.
-        if (onAuthScreen ||
-            loc == AppRoutes.splash ||
-            loc == AppRoutes.onboarding) {
-          return AppRoutes.home;
-        }
+        if (onAuthScreen || loc == AppRoutes.splash || loc == AppRoutes.onboarding) return AppRoutes.home;
         return null;
       },
       routes: [
-        GoRoute(
-            path: AppRoutes.splash,
-            builder: (context, state) => const SplashPage()),
-        GoRoute(
-            path: AppRoutes.onboarding,
-            builder: (context, state) => const OnboardingPage()),
-        GoRoute(
-            path: AppRoutes.login,
-            builder: (context, state) => const LoginScreen()),
-        GoRoute(
-            path: AppRoutes.register,
-            builder: (context, state) => const RegisterScreen()),
-        GoRoute(
-            path: AppRoutes.home,
-            builder: (context, state) => const DashboardPage()),
-        GoRoute(
-            path: AppRoutes.employees,
-            builder: (context, state) => const EmployeeListPage()),
-        GoRoute(
-          path: '/employees/:id',
-          builder: (context, state) {
-            final id = int.parse(state.pathParameters['id']!);
-            return EmployeeDetailsPage(employeeId: id);
-          },
-        ),
-        GoRoute(
-          path: AppRoutes.attendanceActions,
-          builder: (context, state) {
-            final tab =
-                int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return AttendanceActionsScreen(initialTabIndex: tab);
-          },
-        ),
+        GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashPage()),
+        GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingPage()),
+        GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
+        GoRoute(path: AppRoutes.register, builder: (context, state) => const RegisterScreen()),
+        GoRoute(path: AppRoutes.home, builder: (context, state) => const DashboardPage()),
+        GoRoute(path: AppRoutes.employees, builder: (context, state) => const EmployeeListPage()),
+        GoRoute(path: '/employees/:id', builder: (context, state) => EmployeeDetailsPage(employeeId: int.parse(state.pathParameters['id']!))),
+        GoRoute(path: AppRoutes.attendanceActions, builder: (context, state) => AttendanceActionsScreen(initialTabIndex: int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0)),
+        GoRoute(path: AppRoutes.attendanceReports, builder: (context, state) => const AttendanceReportsScreen()),
       ],
     );
   }
