@@ -2,12 +2,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hr_attendance_app/core/utils/usecase.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/result.dart';
 import '../../../employee/domain/entities/day_status.dart';
 import '../../../employee/domain/entities/employee.dart';
 import '../../../employee/domain/usecases/get_employees.dart';
@@ -19,7 +19,8 @@ class AttendanceReportsScreen extends StatefulWidget {
   const AttendanceReportsScreen({super.key});
 
   @override
-  State<AttendanceReportsScreen> createState() => _AttendanceReportsScreenState();
+  State<AttendanceReportsScreen> createState() =>
+      _AttendanceReportsScreenState();
 }
 
 class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
@@ -57,23 +58,24 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
   void _load() {
     if (_from.isAfter(_to)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تاريخ البداية يجب أن يكون قبل تاريخ النهاية')),
+        const SnackBar(
+            content: Text('تاريخ البداية يجب أن يكون قبل تاريخ النهاية')),
       );
       return;
     }
-    context.read<AttendanceReportsCubit>().loadReport(_request);
+    sl<AttendanceReportsCubit>().loadReport(_request);
   }
 
   Future<void> _printPdf() async {
-    final bytes = await context.read<AttendanceReportsCubit>().loadPdf(_request);
+    final bytes = await sl<AttendanceReportsCubit>().loadPdf(_request);
     if (!mounted || bytes == null || bytes.isEmpty) return;
     await Printing.layoutPdf(onLayout: (_) async => Uint8List.fromList(bytes));
   }
 
   Future<void> _showActions() async {
-    await context.read<AttendanceReportsCubit>().loadActions(_request);
+    await sl<AttendanceReportsCubit>().loadActions(_request);
     if (!mounted) return;
-    final state = context.read<AttendanceReportsCubit>().state;
+    final state = sl<AttendanceReportsCubit>().state;
     if (state is AttendanceReportsActionsLoaded) {
       showModalBottomSheet<void>(
         context: context,
@@ -116,7 +118,8 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
                   employeeId: _employeeId,
                   department: _department,
                   employees: snapshot.data ?? const [],
-                  employeesLoading: snapshot.connectionState == ConnectionState.waiting,
+                  employeesLoading:
+                      snapshot.connectionState == ConnectionState.waiting,
                   onFromChanged: (value) => setState(() => _from = value),
                   onToChanged: (value) => setState(() => _to = value),
                   onStatusChanged: (value) => setState(() => _status = value),
@@ -131,11 +134,13 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
                     });
                   },
                   onSearch: _load,
-                  onReloadEmployees: () => setState(() => _employeesFuture = _loadEmployees()),
+                  onReloadEmployees: () =>
+                      setState(() => _employeesFuture = _loadEmployees()),
                 ),
               ),
               Expanded(
-                child: BlocBuilder<AttendanceReportsCubit, AttendanceReportsState>(
+                child:
+                    BlocBuilder<AttendanceReportsCubit, AttendanceReportsState>(
                   builder: (context, state) {
                     if (state is AttendanceReportsLoading) {
                       return const Center(child: CircularProgressIndicator());
@@ -190,7 +195,8 @@ class _Filters extends StatelessWidget {
     required this.onReloadEmployees,
   });
 
-  Future<void> _pick(BuildContext context, DateTime initial, ValueChanged<DateTime> changed) async {
+  Future<void> _pick(BuildContext context, DateTime initial,
+      ValueChanged<DateTime> changed) async {
     final value = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -203,7 +209,12 @@ class _Filters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formatter = DateFormat('yyyy-MM-dd');
-    final departments = employees.map((e) => e.department).where((e) => e.isNotEmpty).toSet().toList()..sort();
+    final departments = employees
+        .map((e) => e.department)
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 6),
       child: Padding(
@@ -227,10 +238,13 @@ class _Filters extends StatelessWidget {
               width: 230,
               child: DropdownButtonFormField<int?>(
                 value: employeeId,
-                decoration: const InputDecoration(labelText: 'الموظف', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'الموظف', border: OutlineInputBorder()),
                 items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('كل الموظفين')),
-                  ...employees.map((e) => DropdownMenuItem<int?>(value: e.id, child: Text('${e.fullName} (${e.code})'))),
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('كل الموظفين')),
+                  ...employees.map((e) => DropdownMenuItem<int?>(
+                      value: e.id, child: Text('${e.fullName} (${e.code})'))),
                 ],
                 onChanged: employeesLoading ? null : onEmployeeChanged,
               ),
@@ -239,10 +253,13 @@ class _Filters extends StatelessWidget {
               width: 190,
               child: DropdownButtonFormField<String?>(
                 value: department,
-                decoration: const InputDecoration(labelText: 'القسم', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'القسم', border: OutlineInputBorder()),
                 items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('كل الأقسام')),
-                  ...departments.map((e) => DropdownMenuItem<String?>(value: e, child: Text(e))),
+                  const DropdownMenuItem<String?>(
+                      value: null, child: Text('كل الأقسام')),
+                  ...departments.map((e) =>
+                      DropdownMenuItem<String?>(value: e, child: Text(e))),
                 ],
                 onChanged: (value) {
                   // Department is deliberately derived from the selected employee.
@@ -254,16 +271,27 @@ class _Filters extends StatelessWidget {
               value: status,
               hint: const Text('الحالة'),
               items: [
-                const DropdownMenuItem<DayStatus?>(value: null, child: Text('كل الحالات')),
+                const DropdownMenuItem<DayStatus?>(
+                    value: null, child: Text('كل الحالات')),
                 ...DayStatus.values.where((e) => e != DayStatus.none).map(
-                      (e) => DropdownMenuItem<DayStatus?>(value: e, child: Text(e.legendLabel)),
+                      (e) => DropdownMenuItem<DayStatus?>(
+                          value: e, child: Text(e.legendLabel)),
                     ),
               ],
               onChanged: onStatusChanged,
             ),
-            FilterChip(label: const Text('المتأخرون فقط'), selected: lateOnly, onSelected: onLateChanged),
-            FilledButton.icon(onPressed: onSearch, icon: const Icon(Icons.search), label: const Text('بحث')),
-            IconButton(tooltip: 'إعادة تحميل الموظفين', onPressed: onReloadEmployees, icon: const Icon(Icons.refresh)),
+            FilterChip(
+                label: const Text('المتأخرون فقط'),
+                selected: lateOnly,
+                onSelected: onLateChanged),
+            FilledButton.icon(
+                onPressed: onSearch,
+                icon: const Icon(Icons.search),
+                label: const Text('بحث')),
+            IconButton(
+                tooltip: 'إعادة تحميل الموظفين',
+                onPressed: onReloadEmployees,
+                icon: const Icon(Icons.refresh)),
           ],
         ),
       ),
@@ -275,7 +303,8 @@ class _ReportBody extends StatelessWidget {
   final AttendanceReportModel report;
   const _ReportBody({required this.report});
 
-  String _minutes(int value) => '${value ~/ 60}:${(value % 60).toString().padLeft(2, '0')}';
+  String _minutes(int value) =>
+      '${value ~/ 60}:${(value % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +367,8 @@ class _ReportBody extends StatelessWidget {
     );
   }
 
-  void _showEmployee(BuildContext context, EmployeeAttendanceReportModel employee) {
+  void _showEmployee(
+      BuildContext context, EmployeeAttendanceReportModel employee) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -351,7 +381,11 @@ class _EmployeeDetailsSheet extends StatelessWidget {
   final EmployeeAttendanceReportModel employee;
   const _EmployeeDetailsSheet({required this.employee});
 
-  String _time(String? value) => value == null || value.isEmpty ? '-' : value.length >= 5 ? value.substring(0, 5) : value;
+  String _time(String? value) => value == null || value.isEmpty
+      ? '-'
+      : value.length >= 5
+          ? value.substring(0, 5)
+          : value;
 
   @override
   Widget build(BuildContext context) {
@@ -368,7 +402,8 @@ class _EmployeeDetailsSheet extends StatelessWidget {
             if (index == 0) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text(employee.fullName, style: Theme.of(context).textTheme.titleLarge),
+                child: Text(employee.fullName,
+                    style: Theme.of(context).textTheme.titleLarge),
               );
             }
             final day = employee.days[index - 1];
@@ -376,7 +411,8 @@ class _EmployeeDetailsSheet extends StatelessWidget {
               child: ListTile(
                 leading: CircleAvatar(child: Text('${day.date.day}')),
                 title: Text(DateFormat('yyyy-MM-dd').format(day.date)),
-                subtitle: Text('${day.status.legendLabel}  •  دخول ${_time(day.checkIn)}  •  خروج ${_time(day.checkOut)}'),
+                subtitle: Text(
+                    '${day.status.legendLabel}  •  دخول ${_time(day.checkIn)}  •  خروج ${_time(day.checkOut)}'),
                 trailing: Text('تأخير ${day.lateMinutes} د'),
               ),
             );
@@ -406,7 +442,8 @@ class _ActionsSheet extends StatelessWidget {
                   return ListTile(
                     leading: const Icon(Icons.event_note),
                     title: Text(action.employeeName),
-                    subtitle: Text('${DateFormat('yyyy-MM-dd').format(action.date)} • ${action.actionType}${action.details == null ? '' : '\n${action.details}'}'),
+                    subtitle: Text(
+                        '${DateFormat('yyyy-MM-dd').format(action.date)} • ${action.actionType}${action.details == null ? '' : '\n${action.details}'}'),
                     trailing: Text(action.time ?? ''),
                   );
                 },
@@ -454,11 +491,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColors.textMuted, size: 48),
+            const Icon(Icons.error_outline,
+                color: AppColors.textMuted, size: 48),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
+            ElevatedButton(
+                onPressed: onRetry, child: const Text('إعادة المحاولة')),
           ],
         ),
       ),
