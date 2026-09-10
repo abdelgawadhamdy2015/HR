@@ -14,7 +14,7 @@ class MoreActionsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = sl<AuthCubit>();
     final user = auth.state.currentUser;
-    final can = user?.hasPermission ?? (_) => false;
+    bool can(String permission) => user?.hasPermission(permission) ?? false;
 
     final actions = <Widget>[
       if (can('Employees.View')) _Action(icon: Icons.groups_outlined, title: 'الموظفون', onTap: () => context.push(AppRoutes.employees)),
@@ -30,7 +30,7 @@ class MoreActionsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person)), title: Text(user?.username ?? ''), subtitle: Text(user?.email ?? ''),)),
+          Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person)), title: Text(user?.username ?? ''), subtitle: Text(user?.email ?? ''))),
           const SizedBox(height: 12),
           if (actions.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('لا توجد إجراءات متاحة لحسابك.', textAlign: TextAlign.center))),
           ...actions,
@@ -69,7 +69,5 @@ class _Action extends StatelessWidget {
   const _Action({required this.icon, required this.title, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: ListTile(leading: Icon(icon, color: AppColors.gold), title: Text(title), trailing: const Icon(Icons.chevron_right), onTap: onTap),
-      );
+  Widget build(BuildContext context) => Card(child: ListTile(leading: Icon(icon, color: AppColors.gold), title: Text(title), trailing: const Icon(Icons.chevron_right), onTap: onTap));
 }
