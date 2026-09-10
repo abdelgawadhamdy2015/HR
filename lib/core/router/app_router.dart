@@ -12,6 +12,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/employee/presentation/pages/employee_details_page.dart';
 import '../../features/employee/presentation/pages/employee_list_page.dart';
+import '../../features/permissions/presentation/screens/permissions_screen.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
 
@@ -25,7 +26,9 @@ class AppRouter {
       redirect: (context, state) async {
         final loc = state.matchedLocation;
         final authStatus = authCubit.state.status;
-        if (authStatus == AuthStatus.initial || authStatus == AuthStatus.loading) return loc == AppRoutes.splash ? null : AppRoutes.splash;
+        if (authStatus == AuthStatus.initial || authStatus == AuthStatus.loading) {
+          return loc == AppRoutes.splash ? null : AppRoutes.splash;
+        }
         final authenticated = authStatus == AuthStatus.authenticated;
         final onAuthScreen = loc == AppRoutes.login || loc == AppRoutes.register;
         if (!authenticated) {
@@ -46,6 +49,12 @@ class AppRouter {
         GoRoute(path: '/employees/:id', builder: (context, state) => EmployeeDetailsPage(employeeId: int.parse(state.pathParameters['id']!))),
         GoRoute(path: AppRoutes.attendanceActions, builder: (context, state) => AttendanceActionsScreen(initialTabIndex: int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0)),
         GoRoute(path: AppRoutes.attendanceReports, builder: (context, state) => const AttendanceReportsTabScreen()),
+        GoRoute(
+          path: AppRoutes.permissions,
+          builder: (context, state) => PermissionsScreen(
+            userId: int.tryParse(state.uri.queryParameters['userId'] ?? ''),
+          ),
+        ),
       ],
     );
   }
