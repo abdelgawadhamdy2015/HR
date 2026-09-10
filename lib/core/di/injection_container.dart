@@ -48,7 +48,7 @@ import '../../features/permissions/data/repositories/permissions_repository_impl
 import '../../features/permissions/domain/repositories/permissions_repository.dart';
 import '../../features/permissions/domain/usecases/assign_permission.dart';
 import '../../features/permissions/domain/usecases/create_permission.dart';
-import '../../features/permissions/domain/usecases/get_permissions.dart';
+import '../../features/permissions/domain/usecases/get_permissions.dart' as permissions_usecase;
 import '../../features/permissions/domain/usecases/get_user_permissions.dart';
 import '../../features/permissions/domain/usecases/revoke_permission.dart';
 import '../../features/permissions/presentation/cubit/permissions_cubit.dart';
@@ -97,10 +97,10 @@ Future<void> initDependencies() async {
   sl.registerFactory(() => AttendanceReportsCubit(sl()));
   sl.registerLazySingleton<PermissionsRemoteDataSource>(() => PermissionsRemoteDataSourceImpl(sl()));
   sl.registerLazySingleton<PermissionsRepository>(() => PermissionsRepositoryImpl(sl()));
-  sl.registerLazySingleton(() => GetPermissions(sl()));
+  sl.registerLazySingleton(() => permissions_usecase.GetPermissions(sl()));
   sl.registerLazySingleton(() => GetUserPermissions(sl()));
   sl.registerLazySingleton(() => CreatePermission(sl()));
   sl.registerLazySingleton(() => AssignPermission(sl()));
   sl.registerLazySingleton(() => RevokePermission(sl()));
-  sl.registerFactory(() => PermissionsCubit(getPermissions: sl<GetPermissions>(), getUserPermissions: sl<GetUserPermissions>(), createPermission: sl<CreatePermission>(), assignPermission: sl<AssignPermission>(), revokePermission: sl<RevokePermission>()));
+  sl.registerFactory(() => PermissionsCubit(getPermissions: sl<permissions_usecase.GetPermissions>(), getUserPermissions: sl<GetUserPermissions>(), createPermission: sl<CreatePermission>(), assignPermission: sl<AssignPermission>(), revokePermission: sl<RevokePermission>()));
 }
