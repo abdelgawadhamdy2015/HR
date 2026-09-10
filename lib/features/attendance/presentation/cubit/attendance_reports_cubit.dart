@@ -8,7 +8,8 @@ import 'attendance_reports_state.dart';
 class AttendanceReportsCubit extends Cubit<AttendanceReportsState> {
   final AttendanceReportsRepository repository;
 
-  AttendanceReportsCubit(this.repository) : super(const AttendanceReportsInitial());
+  AttendanceReportsCubit(this.repository)
+      : super(const AttendanceReportsInitial());
 
   Future<void> loadReport(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
@@ -31,15 +32,39 @@ class AttendanceReportsCubit extends Cubit<AttendanceReportsState> {
   Future<List<int>?> loadPdf(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getPdf(request);
-    List<int>? bytes;
-    result.fold(
-      (failure) => emit(AttendanceReportsError(_message(failure))),
+    return result.fold(
+      (failure) {
+        emit(AttendanceReportsError(_message(failure)));
+        return null;
+      },
       (data) {
-        bytes = data;
         emit(AttendanceReportsPdfLoaded(data));
+        return data;
       },
     );
-    return bytes;
+  }
+
+  Future<List<int>?> loadEmployeePdf({
+    required int employeeId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getEmployeePdf(
+      employeeId,
+      fromDate,
+      toDate,
+    );
+    return result.fold(
+      (failure) {
+        emit(AttendanceReportsError(_message(failure)));
+        return null;
+      },
+      (data) {
+        emit(AttendanceReportsPdfLoaded(data));
+        return data;
+      },
+    );
   }
 
   String _message(Failure failure) => failure.message;
