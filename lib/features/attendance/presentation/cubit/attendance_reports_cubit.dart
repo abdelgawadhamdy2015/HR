@@ -20,6 +20,32 @@ class AttendanceReportsCubit extends Cubit<AttendanceReportsState> {
     );
   }
 
+  Future<void> loadDailyReport({
+    required DateTime date,
+    int? employeeId,
+    String? department,
+  }) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getDailyReport(
+      date: date,
+      employeeId: employeeId,
+      department: department,
+    );
+    result.fold(
+      (failure) => emit(AttendanceReportsError(_message(failure))),
+      (data) => emit(AttendanceReportsLoaded(data)),
+    );
+  }
+
+  Future<void> loadLateReport(AttendanceReportRequestModel request) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getLateReport(request);
+    result.fold(
+      (failure) => emit(AttendanceReportsError(_message(failure))),
+      (data) => emit(AttendanceReportsLoaded(data)),
+    );
+  }
+
   Future<void> loadActions(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getActions(request);
