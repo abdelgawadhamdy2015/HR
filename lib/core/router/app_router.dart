@@ -15,7 +15,7 @@ import '../../features/dashboard/presentation/screens/more_actions_screen.dart';
 import '../../features/dashboard/presentation/screens/system_activity_screen.dart';
 import '../../features/employee/presentation/pages/employee_details_page.dart';
 import '../../features/employee/presentation/pages/employee_list_page.dart';
-import '../../features/permissions/presentation/screens/permissions_screen.dart';
+import '../../features/permissions/presentation/screens/user_permissions_screen.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
 
@@ -39,7 +39,6 @@ class AppRouter {
           if (!onboardingDone) return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
           return onAuthScreen ? null : AppRoutes.login;
         }
-
         final permissionByRoute = <String, String>{
           AppRoutes.employees: 'Employees.View',
           AppRoutes.attendanceActions: 'Attendance.Manage',
@@ -68,7 +67,7 @@ class AppRouter {
         GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
         GoRoute(path: AppRoutes.auditLogs, builder: (context, state) => const AuditLogsScreen()),
         GoRoute(path: '/more', builder: (context, state) => const MoreActionsScreen()),
-        GoRoute(path: AppRoutes.permissions, builder: (context, state) => PermissionsScreen(userId: int.tryParse(state.uri.queryParameters['userId'] ?? ''))),
+        GoRoute(path: AppRoutes.permissions, builder: (context, state) => UserPermissionsScreen(initialUserId: int.tryParse(state.uri.queryParameters['userId'] ?? ''))),
       ],
     );
   }
