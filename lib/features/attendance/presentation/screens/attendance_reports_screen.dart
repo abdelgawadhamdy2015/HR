@@ -23,6 +23,7 @@ class AttendanceReportsScreen extends StatefulWidget {
 }
 
 class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
+  late final AttendanceReportsCubit _cubit;
   late DateTime _from;
   late DateTime _to;
   DayStatus? _status;
@@ -34,10 +35,18 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
   @override
   void initState() {
     super.initState();
+    _cubit = sl<AttendanceReportsCubit>();
     final now = DateTime.now();
     _from = DateTime(now.year, now.month, 1);
     _to = DateTime(now.year, now.month + 1, 0);
     _employeesFuture = _loadEmployees();
+    _cubit.loadReport(_request);
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
   }
 
   Future<List<Employee>> _loadEmployees() async {
@@ -53,8 +62,6 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
         status: _status,
         lateOnly: _lateOnly ? true : null,
       );
-
-  AttendanceReportsCubit get _cubit => sl<AttendanceReportsCubit>();
 
   Future<void> _load() async {
     if (_from.isAfter(_to)) {
