@@ -6,6 +6,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_top_bar.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../cubit/permissions_cubit.dart';
 import '../cubit/permissions_state.dart';
 
@@ -38,8 +39,17 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
       return _UserItem(id: json['id'] as int, username: '${json['username'] ?? ''}', fullName: '${json['fullName'] ?? ''}');
     }).toList();
     if (_selectedUserId == null && items.isNotEmpty) _selectedUserId = items.first.id;
-    if (_selectedUserId != null) _cubit.selectUser(_selectedUserId!);
+    if (_selectedUserId != null) await _cubit.selectUser(_selectedUserId!);
     return items;
+  }
+
+  Future<void> _changePermission({required int userId, required int permissionId, required bool assign}) async {
+    if (assign) {
+      await _cubit.assign(userId: userId, permissionId: permissionId);
+    } else {
+      await _cubit.revoke(userId: userId, permissionId: permissionId);
+    }
+    await sl<AuthCubit>().refreshCurrentUser();
   }
 
   @override
@@ -82,13 +92,7 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
                       ...data.permissions.map((permission) {
                         final assigned = data.userPermissions.any((p) => p.id == permission.id);
                         final busy = state is PermissionActionLoading;
-                        return Card(child: SwitchListTile(title: Text(permission.name), subtitle: permission.description == null ? null : Text(permission.description!), value: assigned, activeColor: AppColors.gold, onChanged: _selectedUserId == null || busy ? null : (value) {
-                          if (value) {
-                            _cubit.assign(userId: _selectedUserId!, permissionId: permission.id);
-                          } else {
-                            _cubit.revoke(userId: _selectedUserId!, permissionId: permission.id);
-                          }
-                        }));
+                        return Card(child: SwitchListTile(title: Text(permission.name), subtitle: permission.description == null ? null : Text(permission.description!), value: assigned, activeColor: AppColors.gold, onChanged: _selectedUserId == null || busy ? null : (value) => _changePermission(userId: _selectedUserId!, permissionId: permission.id, assign: value)));
                       }),
                     ],
                   ),
