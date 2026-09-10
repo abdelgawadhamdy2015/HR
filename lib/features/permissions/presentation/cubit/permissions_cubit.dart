@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/utils/result.dart';
+import '../../../../core/utils/usecase.dart';
 import '../../domain/entities/permission.dart';
 import '../../domain/usecases/assign_permission.dart';
 import '../../domain/usecases/create_permission.dart';
@@ -26,7 +27,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
   Future<void> load() async {
     emit(const PermissionsLoading());
-    final result = await getPermissions(NoParams());
+    final result = await getPermissions(const NoParams());
     result.fold(
       (failure) => emit(PermissionsError(failure.message)),
       (permissions) => emit(PermissionsLoaded(permissions: permissions)),
@@ -35,21 +36,16 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
   Future<void> loadUserPermissions(int userId) async {
     final current = _loadedState;
-    if (current == null) {
-      emit(const PermissionsLoading());
-    }
+    if (current == null) emit(const PermissionsLoading());
 
     final result = await getUserPermissions(userId);
     result.fold(
       (failure) => emit(PermissionsError(failure.message)),
-      (userPermissions) {
-        final permissions = current?.permissions ?? const <Permission>[];
-        emit(PermissionsLoaded(
-          permissions: permissions,
-          selectedUserId: userId,
-          userPermissions: userPermissions,
-        ));
-      },
+      (userPermissions) => emit(PermissionsLoaded(
+        permissions: current?.permissions ?? const <Permission>[],
+        selectedUserId: userId,
+        userPermissions: userPermissions,
+      )),
     );
   }
 
@@ -61,8 +57,8 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
     emit(PermissionActionLoading(current));
     final result = await createPermission(name: name, description: description);
-    result.fold(
-      (failure) => emit(PermissionsError(failure.message)),
+    await result.fold(
+      (failure) async => emit(PermissionsError(failure.message)),
       (_) async {
         await load();
         if (current.selectedUserId != null) {
@@ -72,15 +68,15 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     );
   }
 
-  Future<void> assign({required int userId, required int permissionId}) async {
-    await _changeAssignment(
+  Future<void> assign({required int userId, required int permissionId}) {
+    return _changeAssignment(
       action: () => assignPermission(userId: userId, permissionId: permissionId),
       userId: userId,
     );
   }
 
-  Future<void> revoke({required int userId, required int permissionId}) async {
-    await _changeAssignment(
+  Future<void> revoke({required int userId, required int permissionId}) {
+    return _changeAssignment(
       action: () => revokePermission(userId: userId, permissionId: permissionId),
       userId: userId,
     );
