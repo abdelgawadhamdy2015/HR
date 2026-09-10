@@ -97,15 +97,10 @@ Future<void> initDependencies() async {
   sl.registerFactory(() => AttendanceReportsCubit(sl()));
   sl.registerLazySingleton<PermissionsRemoteDataSource>(() => PermissionsRemoteDataSourceImpl(sl()));
   sl.registerLazySingleton<PermissionsRepository>(() => PermissionsRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => GetPermissions(sl()));
   sl.registerLazySingleton(() => GetUserPermissions(sl()));
   sl.registerLazySingleton(() => CreatePermission(sl()));
   sl.registerLazySingleton(() => AssignPermission(sl()));
   sl.registerLazySingleton(() => RevokePermission(sl()));
-  sl.registerFactory(() => PermissionsCubit(
-        getPermissions: sl<GetPermissions>(),
-        getUserPermissions: sl<GetUserPermissions>(),
-        createPermission: sl<CreatePermission>(),
-        assignPermission: sl<AssignPermission>(),
-        revokePermission: sl<RevokePermission>(),
-      ));
+  sl.registerFactory(() => PermissionsCubit(getPermissions: sl<GetPermissions>(), getUserPermissions: sl<GetUserPermissions>(), createPermission: sl<CreatePermission>(), assignPermission: sl<AssignPermission>(), revokePermission: sl<RevokePermission>()));
 }
