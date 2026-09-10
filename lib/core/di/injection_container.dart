@@ -43,6 +43,15 @@ import '../../features/attendance/domain/usecases/mark_attendance_day.dart';
 import '../../features/attendance/domain/usecases/record_lateness.dart';
 import '../../features/attendance/presentation/cubit/attendance_actions_cubit.dart';
 import '../../features/attendance/presentation/cubit/attendance_reports_cubit.dart';
+import '../../features/permissions/data/datasources/permissions_remote_data_source.dart';
+import '../../features/permissions/data/repositories/permissions_repository_impl.dart';
+import '../../features/permissions/domain/repositories/permissions_repository.dart';
+import '../../features/permissions/domain/usecases/assign_permission.dart';
+import '../../features/permissions/domain/usecases/create_permission.dart';
+import '../../features/permissions/domain/usecases/get_permissions.dart';
+import '../../features/permissions/domain/usecases/get_user_permissions.dart';
+import '../../features/permissions/domain/usecases/revoke_permission.dart';
+import '../../features/permissions/presentation/cubit/permissions_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -86,4 +95,17 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<AttendanceReportsRemoteDataSource>(() => AttendanceReportsRemoteDataSourceImpl(sl()));
   sl.registerLazySingleton<AttendanceReportsRepository>(() => AttendanceReportsRepositoryImpl(sl()));
   sl.registerFactory(() => AttendanceReportsCubit(sl()));
+  sl.registerLazySingleton<PermissionsRemoteDataSource>(() => PermissionsRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<PermissionsRepository>(() => PermissionsRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => GetUserPermissions(sl()));
+  sl.registerLazySingleton(() => CreatePermission(sl()));
+  sl.registerLazySingleton(() => AssignPermission(sl()));
+  sl.registerLazySingleton(() => RevokePermission(sl()));
+  sl.registerFactory(() => PermissionsCubit(
+        getPermissions: sl<GetPermissions>(),
+        getUserPermissions: sl<GetUserPermissions>(),
+        createPermission: sl<CreatePermission>(),
+        assignPermission: sl<AssignPermission>(),
+        revokePermission: sl<RevokePermission>(),
+      ));
 }
