@@ -28,48 +28,23 @@ class AttendanceReportsRepositoryImpl implements AttendanceReportsRepository {
   }
 
   @override
-  Future<Result<AttendanceReportModel>> getReport(
-    AttendanceReportRequestModel request,
-  ) => _guard(() => remoteDataSource.getReport(request));
+  Future<Result<AttendanceReportModel>> getReport(AttendanceReportRequestModel request) => _guard(() => remoteDataSource.getReport(request));
 
   @override
-  Future<Result<AttendanceReportModel>> getDailyReport({
-    required DateTime date,
-    int? employeeId,
-    String? department,
-  }) => _guard(
-        () => remoteDataSource.getDailyReport(
-          date: date,
-          employeeId: employeeId,
-          department: department,
-        ),
-      );
+  Future<Result<AttendanceReportModel>> getDailyReport({required DateTime date, int? employeeId, String? department}) => _guard(() => remoteDataSource.getDailyReport(date: date, employeeId: employeeId, department: department));
 
   @override
-  Future<Result<AttendanceReportModel>> getLateReport(
-    AttendanceReportRequestModel request,
-  ) => _guard(() => remoteDataSource.getLateReport(request));
+  Future<Result<AttendanceReportModel>> getLateReport(AttendanceReportRequestModel request) => _guard(() => remoteDataSource.getLateReport(request));
 
   @override
-  Future<Result<List<AttendanceActionReportModel>>> getActions(
-    AttendanceReportRequestModel request,
-  ) => _guard(() => remoteDataSource.getActions(request));
+  Future<Result<AttendanceReportModel>> getEmployeeReport(int employeeId, DateTime fromDate, DateTime toDate) => _guard(() => remoteDataSource.getEmployeeReport(employeeId, fromDate, toDate));
 
   @override
-  Future<Result<List<int>>> getPdf(
-    AttendanceReportRequestModel request,
-  ) => _guard(() => remoteDataSource.getPdf(request));
+  Future<Result<List<AttendanceActionReportModel>>> getActions(AttendanceReportRequestModel request) => _guard(() => remoteDataSource.getActions(request));
 
   @override
-  Future<Result<List<int>>> getEmployeePdf(
-    int employeeId,
-    DateTime fromDate,
-    DateTime toDate,
-  ) => _guard(
-        () => remoteDataSource.getEmployeePdf(
-          employeeId,
-          fromDate,
-          toDate,
-        ),
-      );
+  Future<Result<List<int>>> getPdf(AttendanceReportRequestModel request) => _guard(() => remoteDataSource.getPdf(request));
+
+  @override
+  Future<Result<List<int>>> getEmployeePdf(int employeeId, DateTime fromDate, DateTime toDate) => _guard(() => remoteDataSource.getEmployeePdf(employeeId, fromDate, toDate));
 }
