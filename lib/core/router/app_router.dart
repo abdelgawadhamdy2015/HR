@@ -23,7 +23,13 @@ class AppRouter {
   AppRouter._();
 
   static GoRouter build({required AuthCubit authCubit, required OnboardingStorage onboardingStorage}) {
-    bool has(String permission) => authCubit.state.currentUser?.hasPermission(permission) ?? false;
+    bool has(String permission) {
+      final user = authCubit.state.currentUser;
+      if (user?.hasPermission(permission) == true) return true;
+      if (!permission.endsWith('.View')) return false;
+      final base = permission.substring(0, permission.length - 5);
+      return user?.hasPermission('$base.Manage') == true || user?.hasPermission('$base.Edit') == true;
+    }
 
     return GoRouter(
       initialLocation: AppRoutes.splash,
