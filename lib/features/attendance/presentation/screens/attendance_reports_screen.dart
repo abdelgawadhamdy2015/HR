@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../employee/domain/entities/day_status.dart';
 import '../../../employee/domain/entities/employee.dart';
 import '../../../employee/domain/usecases/get_employees.dart';
@@ -55,108 +54,155 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
         lateOnly: _lateOnly ? true : null,
       );
 
-  void _load() {
+  AttendanceReportsCubit get _cubit => sl<AttendanceReportsCubit>();
+
+  Future<void> _load() async {
     if (_from.isAfter(_to)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('تاريخ البداية يجب أن يكون قبل تاريخ النهاية')),
-      );
+      _showMessage('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
       return;
     }
-    sl<AttendanceReportsCubit>().loadReport(_request);
+    await _cubit.loadReport(_request);
   }
 
   Future<void> _printPdf() async {
-    final bytes = await sl<AttendanceReportsCubit>().loadPdf(_request);
+    if (_from.isAfter(_to)) {
+      _showMessage('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+      return;
+    }
+
+    final bytes = await _cubit.loadPdf(_request);
     if (!mounted || bytes == null || bytes.isEmpty) return;
-    await Printing.layoutPdf(onLayout: (_) async => Uint8List.fromList(bytes));
+
+    await Printing.layoutPdf(
+      name: 'attendance-report-${DateFormat('yyyyMMdd').format(_from)}-${DateFormat('yyyyMMdd').format(_to)}.pdf',
+      onLayout: (_) async => Uint8List.fromList(bytes),
+    );
+  }
+
+  Future<void> _printEmployeePdf(
+    EmployeeAttendanceReportModel employee,
+  ) async {
+    final bytes = await _cubit.loadEmployeePdf(
+      employeeId: employee.employeeId,
+      fromDate: _from,
+      toDate: _to,
+    );
+    if (!mounted || bytes == null || bytes.isEmpty) return;
+
+    await Printing.layoutPdf(
+      name: 'attendance-${employee.code}-${DateFormat('yyyyMMdd').format(_from)}-${DateFormat('yyyyMMdd').format(_to)}.pdf',
+      onLayout: (_) async => Uint8List.fromList(bytes),
+    );
   }
 
   Future<void> _showActions() async {
-    await sl<AttendanceReportsCubit>().loadActions(_request);
+    if (_from.isAfter(_to)) {
+      _showMessage('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+      return;
+    }
+
+    await _cubit.loadActions(_request);
     if (!mounted) return;
-    final state = sl<AttendanceReportsCubit>().state;
+
+    final state = _cubit.state;
     if (state is AttendanceReportsActionsLoaded) {
-      showModalBottomSheet<void>(
+      await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         builder: (_) => _ActionsSheet(actions: state.actions),
       );
+    } else if (state is AttendanceReportsError) {
+      _showMessage(state.message);
     }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AttendanceReportsCubit>()..loadReport(_request),
-      child: Builder(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('تقارير الحضور والانصراف'),
-            actions: [
-              IconButton(
-                tooltip: 'الإجراءات',
-                icon: const Icon(Icons.list_alt),
-                onPressed: _showActions,
+    return BlocProvider.value(
+      value: _cubit,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('تقارير الحضور والانصراف'),
+          actions: [
+            IconButton(
+              tooltip: 'الإجراءات',
+              icon: const Icon(Icons.list_alt),
+              onPressed: _showActions,
+            ),
+            IconButton(
+              tooltip: 'تصدير PDF',
+              icon: const Icon(Icons.picture_as_pdf),
+              onPressed: _printPdf,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            FutureBuilder<List<Employee>>(
+              future: _employeesFuture,
+              builder: (context, snapshot) => _Filters(
+                from: _from,
+                to: _to,
+                status: _status,
+                lateOnly: _lateOnly,
+                employeeId: _employeeId,
+                department: _department,
+                employees: snapshot.data ?? const [],
+                employeesLoading:
+                    snapshot.connectionState == ConnectionState.waiting,
+                onFromChanged: (value) => setState(() => _from = value),
+                onToChanged: (value) => setState(() => _to = value),
+                onStatusChanged: (value) => setState(() => _status = value),
+                onLateChanged: (value) => setState(() => _lateOnly = value),
+                onEmployeeChanged: (value) {
+                  final employee = (snapshot.data ?? const <Employee>[])
+                      .where((item) => item.id == value)
+                      .firstOrNull;
+                  setState(() {
+                    _employeeId = value;
+                    _department = employee?.department;
+                  });
+                },
+                onDepartmentChanged: (value) =>
+                    setState(() => _department = value),
+                onSearch: _load,
+                onReloadEmployees: () =>
+                    setState(() => _employeesFuture = _loadEmployees()),
               ),
-              IconButton(
-                tooltip: 'طباعة PDF',
-                icon: const Icon(Icons.picture_as_pdf),
-                onPressed: _printPdf,
+            ),
+            Expanded(
+              child: BlocConsumer<AttendanceReportsCubit,
+                  AttendanceReportsState>(
+                listener: (context, state) {
+                  if (state is AttendanceReportsError) {
+                    _showMessage(state.message);
+                  }
+                },
+                builder: (context, state) {
+                  if (state is AttendanceReportsLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (state is AttendanceReportsError) {
+                    return _ErrorView(message: state.message, onRetry: _load);
+                  }
+                  if (state is AttendanceReportsLoaded) {
+                    return _ReportBody(
+                      report: state.report,
+                      onPrintEmployee: _printEmployeePdf,
+                    );
+                  }
+                  return const Center(child: Text('لا توجد بيانات'));
+                },
               ),
-            ],
-          ),
-          body: Column(
-            children: [
-              FutureBuilder<List<Employee>>(
-                future: _employeesFuture,
-                builder: (context, snapshot) => _Filters(
-                  from: _from,
-                  to: _to,
-                  status: _status,
-                  lateOnly: _lateOnly,
-                  employeeId: _employeeId,
-                  department: _department,
-                  employees: snapshot.data ?? const [],
-                  employeesLoading:
-                      snapshot.connectionState == ConnectionState.waiting,
-                  onFromChanged: (value) => setState(() => _from = value),
-                  onToChanged: (value) => setState(() => _to = value),
-                  onStatusChanged: (value) => setState(() => _status = value),
-                  onLateChanged: (value) => setState(() => _lateOnly = value),
-                  onEmployeeChanged: (value) {
-                    final employee = (snapshot.data ?? const <Employee>[])
-                        .where((item) => item.id == value)
-                        .firstOrNull;
-                    setState(() {
-                      _employeeId = value;
-                      _department = employee?.department;
-                    });
-                  },
-                  onSearch: _load,
-                  onReloadEmployees: () =>
-                      setState(() => _employeesFuture = _loadEmployees()),
-                ),
-              ),
-              Expanded(
-                child:
-                    BlocBuilder<AttendanceReportsCubit, AttendanceReportsState>(
-                  builder: (context, state) {
-                    if (state is AttendanceReportsLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (state is AttendanceReportsError) {
-                      return _ErrorView(message: state.message, onRetry: _load);
-                    }
-                    if (state is AttendanceReportsLoaded) {
-                      return _ReportBody(report: state.report);
-                    }
-                    return const Center(child: Text('لا توجد بيانات'));
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -175,6 +221,7 @@ class _Filters extends StatelessWidget {
   final ValueChanged<DayStatus?> onStatusChanged;
   final ValueChanged<bool> onLateChanged;
   final ValueChanged<int?> onEmployeeChanged;
+  final ValueChanged<String?> onDepartmentChanged;
   final VoidCallback onSearch, onReloadEmployees;
 
   const _Filters({
@@ -191,12 +238,16 @@ class _Filters extends StatelessWidget {
     required this.onStatusChanged,
     required this.onLateChanged,
     required this.onEmployeeChanged,
+    required this.onDepartmentChanged,
     required this.onSearch,
     required this.onReloadEmployees,
   });
 
-  Future<void> _pick(BuildContext context, DateTime initial,
-      ValueChanged<DateTime> changed) async {
+  Future<void> _pick(
+    BuildContext context,
+    DateTime initial,
+    ValueChanged<DateTime> changed,
+  ) async {
     final value = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -210,11 +261,12 @@ class _Filters extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = DateFormat('yyyy-MM-dd');
     final departments = employees
-        .map((e) => e.department)
+        .map((e) => e.department.trim())
         .where((e) => e.isNotEmpty)
         .toSet()
         .toList()
       ..sort();
+
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 6),
       child: Padding(
@@ -235,16 +287,24 @@ class _Filters extends StatelessWidget {
               label: Text('إلى ${formatter.format(to)}'),
             ),
             SizedBox(
-              width: 230,
+              width: 240,
               child: DropdownButtonFormField<int?>(
                 value: employeeId,
                 decoration: const InputDecoration(
-                    labelText: 'الموظف', border: OutlineInputBorder()),
+                  labelText: 'الموظف',
+                  border: OutlineInputBorder(),
+                ),
                 items: [
                   const DropdownMenuItem<int?>(
-                      value: null, child: Text('كل الموظفين')),
-                  ...employees.map((e) => DropdownMenuItem<int?>(
-                      value: e.id, child: Text('${e.fullName} (${e.code})'))),
+                    value: null,
+                    child: Text('كل الموظفين'),
+                  ),
+                  ...employees.map(
+                    (e) => DropdownMenuItem<int?>(
+                      value: e.id,
+                      child: Text('${e.fullName} (${e.code})'),
+                    ),
+                  ),
                 ],
                 onChanged: employeesLoading ? null : onEmployeeChanged,
               ),
@@ -254,17 +314,22 @@ class _Filters extends StatelessWidget {
               child: DropdownButtonFormField<String?>(
                 value: department,
                 decoration: const InputDecoration(
-                    labelText: 'القسم', border: OutlineInputBorder()),
+                  labelText: 'القسم',
+                  border: OutlineInputBorder(),
+                ),
                 items: [
                   const DropdownMenuItem<String?>(
-                      value: null, child: Text('كل الأقسام')),
-                  ...departments.map((e) =>
-                      DropdownMenuItem<String?>(value: e, child: Text(e))),
+                    value: null,
+                    child: Text('كل الأقسام'),
+                  ),
+                  ...departments.map(
+                    (e) => DropdownMenuItem<String?>(
+                      value: e,
+                      child: Text(e),
+                    ),
+                  ),
                 ],
-                onChanged: (value) {
-                  // Department is deliberately derived from the selected employee.
-                  // This callback is handled by the parent only through employee selection.
-                },
+                onChanged: onDepartmentChanged,
               ),
             ),
             DropdownButton<DayStatus?>(
@@ -272,26 +337,33 @@ class _Filters extends StatelessWidget {
               hint: const Text('الحالة'),
               items: [
                 const DropdownMenuItem<DayStatus?>(
-                    value: null, child: Text('كل الحالات')),
+                  value: null,
+                  child: Text('كل الحالات'),
+                ),
                 ...DayStatus.values.where((e) => e != DayStatus.none).map(
                       (e) => DropdownMenuItem<DayStatus?>(
-                          value: e, child: Text(e.legendLabel)),
+                        value: e,
+                        child: Text(e.legendLabel),
+                      ),
                     ),
               ],
               onChanged: onStatusChanged,
             ),
             FilterChip(
-                label: const Text('المتأخرون فقط'),
-                selected: lateOnly,
-                onSelected: onLateChanged),
+              label: const Text('المتأخرون فقط'),
+              selected: lateOnly,
+              onSelected: onLateChanged,
+            ),
             FilledButton.icon(
-                onPressed: onSearch,
-                icon: const Icon(Icons.search),
-                label: const Text('بحث')),
+              onPressed: onSearch,
+              icon: const Icon(Icons.search),
+              label: const Text('بحث'),
+            ),
             IconButton(
-                tooltip: 'إعادة تحميل الموظفين',
-                onPressed: onReloadEmployees,
-                icon: const Icon(Icons.refresh)),
+              tooltip: 'إعادة تحميل الموظفين',
+              onPressed: onReloadEmployees,
+              icon: const Icon(Icons.refresh),
+            ),
           ],
         ),
       ),
@@ -301,7 +373,13 @@ class _Filters extends StatelessWidget {
 
 class _ReportBody extends StatelessWidget {
   final AttendanceReportModel report;
-  const _ReportBody({required this.report});
+  final Future<void> Function(EmployeeAttendanceReportModel employee)
+      onPrintEmployee;
+
+  const _ReportBody({
+    required this.report,
+    required this.onPrintEmployee,
+  });
 
   String _minutes(int value) =>
       '${value ~/ 60}:${(value % 60).toString().padLeft(2, '0')}';
@@ -311,6 +389,7 @@ class _ReportBody extends StatelessWidget {
     if (report.employees.isEmpty) {
       return const Center(child: Text('لا توجد سجلات في الفترة المحددة'));
     }
+
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -341,6 +420,7 @@ class _ReportBody extends StatelessWidget {
                 DataColumn(label: Text('تأخير')),
                 DataColumn(label: Text('دقائق')),
                 DataColumn(label: Text('ساعات العمل')),
+                DataColumn(label: Text('PDF')),
               ],
               rows: report.employees.map((employee) {
                 return DataRow(
@@ -357,6 +437,13 @@ class _ReportBody extends StatelessWidget {
                     DataCell(Text('${employee.lateDays}')),
                     DataCell(Text('${employee.totalLateMinutes}')),
                     DataCell(Text(_minutes(employee.totalWorkedMinutes))),
+                    DataCell(
+                      IconButton(
+                        tooltip: 'تصدير تقرير الموظف PDF',
+                        icon: const Icon(Icons.picture_as_pdf),
+                        onPressed: () => onPrintEmployee(employee),
+                      ),
+                    ),
                   ],
                 );
               }).toList(),
@@ -368,7 +455,9 @@ class _ReportBody extends StatelessWidget {
   }
 
   void _showEmployee(
-      BuildContext context, EmployeeAttendanceReportModel employee) {
+    BuildContext context,
+    EmployeeAttendanceReportModel employee,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -387,6 +476,9 @@ class _EmployeeDetailsSheet extends StatelessWidget {
           ? value.substring(0, 5)
           : value;
 
+  String _minutes(int value) =>
+      '${value ~/ 60}:${(value % 60).toString().padLeft(2, '0')}';
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -402,8 +494,10 @@ class _EmployeeDetailsSheet extends StatelessWidget {
             if (index == 0) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text(employee.fullName,
-                    style: Theme.of(context).textTheme.titleLarge),
+                child: Text(
+                  '${employee.fullName} • ${employee.code}',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               );
             }
             final day = employee.days[index - 1];
@@ -412,8 +506,9 @@ class _EmployeeDetailsSheet extends StatelessWidget {
                 leading: CircleAvatar(child: Text('${day.date.day}')),
                 title: Text(DateFormat('yyyy-MM-dd').format(day.date)),
                 subtitle: Text(
-                    '${day.status.legendLabel}  •  دخول ${_time(day.checkIn)}  •  خروج ${_time(day.checkOut)}'),
-                trailing: Text('تأخير ${day.lateMinutes} د'),
+                  '${day.status.legendLabel} • دخول ${_time(day.checkIn)} • خروج ${_time(day.checkOut)}\n'
+                  'عمل ${_minutes(day.workedMinutes)} • تأخير ${day.lateMinutes} د',
+                ),
               ),
             );
           },
@@ -439,12 +534,19 @@ class _ActionsSheet extends StatelessWidget {
                 itemCount: actions.length,
                 itemBuilder: (_, index) {
                   final action = actions[index];
-                  return ListTile(
-                    leading: const Icon(Icons.event_note),
-                    title: Text(action.employeeName),
-                    subtitle: Text(
-                        '${DateFormat('yyyy-MM-dd').format(action.date)} • ${action.actionType}${action.details == null ? '' : '\n${action.details}'}'),
-                    trailing: Text(action.time ?? ''),
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.event_note),
+                      title: Text(
+                        '${action.employeeName} (${action.employeeCode})',
+                      ),
+                      subtitle: Text(
+                        '${DateFormat('yyyy-MM-dd').format(action.date)} • '
+                        '${action.actionType}'
+                        '${action.details == null ? '' : '\n${action.details}'}',
+                      ),
+                      trailing: Text(action.time ?? ''),
+                    ),
                   );
                 },
               ),
@@ -463,13 +565,16 @@ class _Stat extends StatelessWidget {
       width: 150,
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title),
-              const SizedBox(height: 5),
-              Text(value, style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ],
           ),
         ),
@@ -491,13 +596,15 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.textMuted, size: 48),
+            const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-                onPressed: onRetry, child: const Text('إعادة المحاولة')),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المحاولة'),
+            ),
           ],
         ),
       ),
