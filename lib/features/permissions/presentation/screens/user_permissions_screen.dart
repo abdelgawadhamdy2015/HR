@@ -52,15 +52,44 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
     await sl<AuthCubit>().refreshCurrentUser();
   }
 
+  Future<void> _createPermission() async {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إضافة صلاحية'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nameController, decoration: const InputDecoration(labelText: 'اسم الصلاحية', hintText: 'Example.Manage')),
+          const SizedBox(height: 12),
+          TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'الوصف')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حفظ')),
+        ],
+      ),
+    );
+    if (result == true && nameController.text.trim().isNotEmpty && mounted) {
+      await _cubit.create(name: nameController.text.trim(), description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim());
+      nameController.dispose();
+      descriptionController.dispose();
+    } else {
+      nameController.dispose();
+      descriptionController.dispose();
+    }
+  }
+
   @override
   void dispose() { _cubit.close(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
+    final canManage = sl<AuthCubit>().hasPermission('Permissions.Manage');
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
-        appBar: const AppTopBar(title: 'إدارة صلاحيات المستخدمين'),
+        appBar: AppTopBar(title: 'إدارة صلاحيات المستخدمين', actions: [if (canManage) IconButton(onPressed: _createPermission, icon: const Icon(Icons.add_moderator))]),
         body: FutureBuilder<List<_UserItem>>(
           future: _usersFuture,
           builder: (context, usersSnapshot) {
@@ -92,7 +121,7 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
                       ...data.permissions.map((permission) {
                         final assigned = data.userPermissions.any((p) => p.id == permission.id);
                         final busy = state is PermissionActionLoading;
-                        return Card(child: SwitchListTile(title: Text(permission.name), subtitle: permission.description == null ? null : Text(permission.description!), value: assigned, activeColor: AppColors.gold, onChanged: _selectedUserId == null || busy ? null : (value) => _changePermission(userId: _selectedUserId!, permissionId: permission.id, assign: value)));
+                        return Card(child: SwitchListTile(title: Text(permission.name), subtitle: permission.description == null ? null : Text(permission.description!), value: assigned, activeColor: AppColors.gold, onChanged: _selectedUserId == null || busy || !canManage ? null : (value) => _changePermission(userId: _selectedUserId!, permissionId: permission.id, assign: value)));
                       }),
                     ],
                   ),
