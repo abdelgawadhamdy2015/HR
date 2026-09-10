@@ -4,138 +4,138 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_top_bar.dart';
-import '../../../employee/domain/entities/employee.dart';
-import '../../../employee/domain/usecases/get_employees.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../cubit/permissions_cubit.dart';
 import '../cubit/permissions_state.dart';
 
-class PermissionsScreen extends StatelessWidget {
-  const PermissionsScreen({super.key});
+class PermissionsScreen extends StatefulWidget {
+  const PermissionsScreen({super.key, this.userId});
+
+  final int? userId;
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<PermissionsCubit>()..load(),
-      child: const _PermissionsView(),
-    );
-  }
+  State<PermissionsScreen> createState() => _PermissionsScreenState();
 }
 
-class _PermissionsView extends StatefulWidget {
-  const _PermissionsView();
-
-  @override
-  State<_PermissionsView> createState() => _PermissionsViewState();
-}
-
-class _PermissionsViewState extends State<_PermissionsView> {
-  List<Employee> _employees = const [];
+class _PermissionsScreenState extends State<PermissionsScreen> {
+  late final PermissionsCubit _cubit;
+  late final TextEditingController _userIdController;
   int? _selectedUserId;
-  bool _loadingEmployees = true;
 
   @override
   void initState() {
     super.initState();
-    _loadEmployees();
+    _cubit = sl<PermissionsCubit>()..load();
+    final currentUserId = sl<AuthCubit>().state.currentUser?.id;
+    _selectedUserId = widget.userId ?? currentUserId;
+    _userIdController = TextEditingController(
+      text: _selectedUserId?.toString() ?? '',
+    );
+    if (_selectedUserId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _cubit.selectUser(_selectedUserId!);
+      });
+    }
   }
 
-  Future<void> _loadEmployees() async {
-    setState(() => _loadingEmployees = true);
-    final result = await sl<GetEmployees>()(const NoParams());
-    if (!mounted) return;
-    result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failure.message)),
-      ),
-      (employees) {
-        setState(() {
-          _employees = employees;
-          _loadingEmployees = false;
-        });
-      },
-    );
+  @override
+  void dispose() {
+    _userIdController.dispose();
+    _cubit.close();
+    super.dispose();
+  }
+
+  void _loadUser() {
+    final id = int.tryParse(_userIdController.text.trim());
+    if (id == null || id <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل رقم مستخدم صحيح')),
+      );
+      return;
+    }
+    setState(() => _selectedUserId = id);
+    _cubit.selectUser(id);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const AppTopBar(title: 'إدارة الصلاحيات'),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.gold,
-        onPressed: () => _showCreatePermissionDialog(context),
-        child: const Icon(Icons.add, color: AppColors.background),
-      ),
-      body: BlocConsumer<PermissionsCubit, PermissionsState>(
-        listener: (context, state) {
-          if (state is PermissionsError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is PermissionsLoading || state is PermissionsInitial) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.gold),
-            );
-          }
+    return BlocProvider.value(
+      value: _cubit,
+      child: Scaffold(
+        appBar: const AppTopBar(title: 'إدارة الصلاحيات'),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: AppColors.gold,
+          onPressed: () => _showCreatePermissionDialog(context),
+          child: const Icon(Icons.add, color: AppColors.background),
+        ),
+        body: BlocConsumer<PermissionsCubit, PermissionsState>(
+          listener: (context, state) {
+            if (state is PermissionsError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state is PermissionsLoading || state is PermissionsInitial) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              );
+            }
 
-          final data = state is PermissionsLoaded
-              ? state
-              : state is PermissionActionLoading
-                  ? state.data
-                  : null;
-          if (data == null) {
-            return Center(
-              child: ElevatedButton(
-                onPressed: () => context.read<PermissionsCubit>().load(),
-                child: const Text('إعادة المحاولة'),
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            color: AppColors.gold,
-            onRefresh: () => context.read<PermissionsCubit>().load(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                DropdownButtonFormField<int>(
-                  value: _selectedUserId,
-                  decoration: const InputDecoration(
-                    labelText: 'المستخدم',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  items: _loadingEmployees
-                      ? const []
-                      : _employees
-                          .map(
-                            (employee) => DropdownMenuItem<int>(
-                              value: employee.id,
-                              child: Text('${employee.fullName} (${employee.code})'),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (id) {
-                    if (id == null) return;
-                    setState(() => _selectedUserId = id);
-                    context.read<PermissionsCubit>().selectUser(id);
-                  },
+            final data = state is PermissionsLoaded
+                ? state
+                : state is PermissionActionLoading
+                    ? state.data
+                    : null;
+            if (data == null) {
+              return Center(
+                child: ElevatedButton(
+                  onPressed: _cubit.load,
+                  child: const Text('إعادة المحاولة'),
                 ),
-                const SizedBox(height: 24),
-                if (_selectedUserId == null)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        'اختر مستخدمًا لعرض وإدارة الصلاحيات الخاصة به.',
-                        textAlign: TextAlign.center,
+              );
+            }
+
+            return RefreshIndicator(
+              color: AppColors.gold,
+              onRefresh: _cubit.load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  TextField(
+                    controller: _userIdController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'رقم المستخدم User ID',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: _loadUser,
                       ),
                     ),
-                  )
-                else
-                  ...data.permissions.map(
-                    (permission) {
+                    onSubmitted: (_) => _loadUser(),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'يمكنك البدء بالمستخدم الحالي، أو إدخال User ID لمستخدم آخر إذا كانت لديك صلاحية Permissions.Manage.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_selectedUserId == null)
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          'أدخل User ID لعرض الصلاحيات الخاصة بالمستخدم.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  else
+                    ...data.permissions.map((permission) {
                       final assigned = data.userPermissions
                           .any((item) => item.id == permission.id);
                       final busy = state is PermissionActionLoading;
@@ -152,25 +152,25 @@ class _PermissionsViewState extends State<_PermissionsView> {
                               ? null
                               : (value) {
                                   if (value) {
-                                    context.read<PermissionsCubit>().assign(
-                                          userId: _selectedUserId!,
-                                          permissionId: permission.id,
-                                        );
+                                    _cubit.assign(
+                                      userId: _selectedUserId!,
+                                      permissionId: permission.id,
+                                    );
                                   } else {
-                                    context.read<PermissionsCubit>().revoke(
-                                          userId: _selectedUserId!,
-                                          permissionId: permission.id,
-                                        );
+                                    _cubit.revoke(
+                                      userId: _selectedUserId!,
+                                      permissionId: permission.id,
+                                    );
                                   }
                                 },
                         ),
                       );
-                    },
-                  ),
-              ],
-            ),
-          );
-        },
+                    }),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -214,12 +214,12 @@ class _PermissionsViewState extends State<_PermissionsView> {
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               Navigator.pop(dialogContext);
-              context.read<PermissionsCubit>().create(
-                    name: nameController.text.trim(),
-                    description: descriptionController.text.trim().isEmpty
-                        ? null
-                        : descriptionController.text.trim(),
-                  );
+              _cubit.create(
+                name: nameController.text.trim(),
+                description: descriptionController.text.trim().isEmpty
+                    ? null
+                    : descriptionController.text.trim(),
+              );
             },
             child: const Text('حفظ'),
           ),
