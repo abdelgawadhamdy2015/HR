@@ -14,13 +14,19 @@ class MoreActionsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = sl<AuthCubit>();
     final user = auth.state.currentUser;
-    bool can(String permission) => user?.hasPermission(permission) ?? false;
+    bool can(String permission) {
+      if (user?.hasPermission(permission) == true) return true;
+      if (!permission.endsWith('.View')) return false;
+      final base = permission.substring(0, permission.length - 5);
+      return user?.hasPermission('$base.Manage') == true || user?.hasPermission('$base.Edit') == true;
+    }
+    final canManagePermissions = user?.hasPermission('Permissions.Manage') == true;
 
     final actions = <Widget>[
       if (can('Employees.View')) _Action(icon: Icons.groups_outlined, title: 'الموظفون', onTap: () => context.push(AppRoutes.employees)),
       if (can('Attendance.Manage')) _Action(icon: Icons.fingerprint, title: 'إجراءات الحضور', onTap: () => context.push(AppRoutes.attendanceActions)),
       if (can('Reports.View')) _Action(icon: Icons.assignment_outlined, title: 'تقارير الحضور', onTap: () => context.push(AppRoutes.attendanceReports)),
-      if (can('Permissions.View')) _Action(icon: Icons.admin_panel_settings_outlined, title: 'الصلاحيات', onTap: () => context.push(AppRoutes.permissions)),
+      if (can('Permissions.View')) _Action(icon: Icons.admin_panel_settings_outlined, title: canManagePermissions ? 'إدارة الصلاحيات' : 'عرض الصلاحيات', onTap: () => context.push(AppRoutes.permissions)),
       if (can('Notifications.View')) _Action(icon: Icons.notifications_none, title: 'الإشعارات', onTap: () => context.push(AppRoutes.notifications)),
       if (can('AuditLogs.View')) _Action(icon: Icons.history, title: 'سجل العمليات', onTap: () => context.push(AppRoutes.auditLogs)),
     ];
