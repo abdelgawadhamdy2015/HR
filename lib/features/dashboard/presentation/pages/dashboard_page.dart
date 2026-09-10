@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_date_formatter.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/app_top_bar.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/notification_tile.dart';
 import '../widgets/quick_action_button.dart';
@@ -34,6 +35,10 @@ class _DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canManagePermissions = sl<AuthCubit>().state.currentUser
+            ?.hasPermission('Permissions.Manage') ??
+        false;
+
     return Scaffold(
       appBar: const AppTopBar(title: 'شؤون العاملين'),
       body: BlocBuilder<DashboardCubit, DashboardState>(
@@ -49,6 +54,18 @@ class _DashboardView extends StatelessWidget {
           }
 
           final stats = state.stats!;
+          final quickActions = <Widget>[
+            QuickActionButton(icon: Icons.groups_outlined, iconColor: AppColors.gold, label: 'قائمة الموظفين', onTap: () => context.push(AppRoutes.employees)),
+            QuickActionButton(icon: Icons.fingerprint, iconColor: AppColors.gold, label: 'تسجيل حضور', onTap: () => _openAttendanceActions(context, 0)),
+            QuickActionButton(icon: Icons.access_time, iconColor: AppColors.gold, label: 'التأخيرات', onTap: () => _openAttendanceActions(context, 2)),
+            QuickActionButton(icon: Icons.beach_access, iconColor: AppColors.gold, label: 'الإجازات', onTap: () => _openAttendanceActions(context, 1)),
+            QuickActionButton(icon: Icons.edit_note, iconColor: AppColors.gold, label: 'الإذن', onTap: () => _openAttendanceActions(context, 4)),
+            QuickActionButton(icon: Icons.flight, iconColor: AppColors.gold, label: 'المأموريات', onTap: () => _openAttendanceActions(context, 3)),
+            QuickActionButton(icon: Icons.assignment_outlined, iconColor: AppColors.gold, label: 'تقارير الحضور', onTap: () => context.push(AppRoutes.attendanceReports)),
+            if (canManagePermissions)
+              QuickActionButton(icon: Icons.admin_panel_settings_outlined, iconColor: AppColors.gold, label: 'الصلاحيات', onTap: () => context.push(AppRoutes.permissions)),
+          ];
+
           return RefreshIndicator(
             color: AppColors.gold,
             backgroundColor: AppColors.surface,
@@ -61,12 +78,7 @@ class _DashboardView extends StatelessWidget {
                 _DatePickerChip(
                   date: state.selectedDate,
                   onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: state.selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
+                    final picked = await showDatePicker(context: context, initialDate: state.selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
                     if (picked != null && context.mounted) context.read<DashboardCubit>().changeDate(picked);
                   },
                 ),
@@ -97,15 +109,7 @@ class _DashboardView extends StatelessWidget {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: 1.1,
-                  children: [
-                    QuickActionButton(icon: Icons.groups_outlined, iconColor: AppColors.gold, label: 'قائمة الموظفين', onTap: () => context.push(AppRoutes.employees)),
-                    QuickActionButton(icon: Icons.fingerprint, iconColor: AppColors.gold, label: 'تسجيل حضور', onTap: () => _openAttendanceActions(context, 0)),
-                    QuickActionButton(icon: Icons.access_time, iconColor: AppColors.gold, label: 'التأخيرات', onTap: () => _openAttendanceActions(context, 2)),
-                    QuickActionButton(icon: Icons.beach_access, iconColor: AppColors.gold, label: 'الإجازات', onTap: () => _openAttendanceActions(context, 1)),
-                    QuickActionButton(icon: Icons.edit_note, iconColor: AppColors.gold, label: 'الإذن', onTap: () => _openAttendanceActions(context, 4)),
-                    QuickActionButton(icon: Icons.flight, iconColor: AppColors.gold, label: 'المأموريات', onTap: () => _openAttendanceActions(context, 3)),
-                    QuickActionButton(icon: Icons.assignment_outlined, iconColor: AppColors.gold, label: 'تقارير الحضور', onTap: () => context.push(AppRoutes.attendanceReports)),
-                  ],
+                  children: quickActions,
                 ),
                 const SizedBox(height: 24),
                 Card(
@@ -117,10 +121,7 @@ class _DashboardView extends StatelessWidget {
                         const Text('تنبيهات', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                         const Divider(height: 24),
                         if (state.notifications.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.textMuted)),
-                          )
+                          const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.textMuted)))
                         else
                           ...state.notifications.map((n) => NotificationTile(notification: n)),
                       ],
