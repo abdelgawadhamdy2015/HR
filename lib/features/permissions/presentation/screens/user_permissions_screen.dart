@@ -43,10 +43,7 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
   }
 
   @override
-  void dispose() {
-    _cubit.close();
-    super.dispose();
-  }
+  void dispose() { _cubit.close(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -54,11 +51,6 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
       value: _cubit,
       child: Scaffold(
         appBar: const AppTopBar(title: 'إدارة صلاحيات المستخدمين'),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: AppColors.gold,
-          onPressed: () => context.push('/permissions'),
-          child: const Icon(Icons.add, color: AppColors.background),
-        ),
         body: FutureBuilder<List<_UserItem>>(
           future: _usersFuture,
           builder: (context, usersSnapshot) {
@@ -67,9 +59,7 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
             final users = usersSnapshot.data ?? const <_UserItem>[];
             if (users.isEmpty) return const Center(child: Text('لا يوجد مستخدمون في قاعدة البيانات'));
             return BlocConsumer<PermissionsCubit, PermissionsState>(
-              listener: (context, state) {
-                if (state is PermissionsError) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
-              },
+              listener: (context, state) { if (state is PermissionsError) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message))); },
               builder: (context, state) {
                 final data = state is PermissionsLoaded ? state : state is PermissionActionLoading ? state.data : null;
                 if (data == null) return const Center(child: CircularProgressIndicator(color: AppColors.gold));
@@ -92,19 +82,13 @@ class _UserPermissionsScreenState extends State<UserPermissionsScreen> {
                       ...data.permissions.map((permission) {
                         final assigned = data.userPermissions.any((p) => p.id == permission.id);
                         final busy = state is PermissionActionLoading;
-                        return Card(child: SwitchListTile(
-                          title: Text(permission.name),
-                          subtitle: permission.description == null ? null : Text(permission.description!),
-                          value: assigned,
-                          activeColor: AppColors.gold,
-                          onChanged: _selectedUserId == null || busy ? null : (value) {
-                            if (value) {
-                              _cubit.assign(userId: _selectedUserId!, permissionId: permission.id);
-                            } else {
-                              _cubit.revoke(userId: _selectedUserId!, permissionId: permission.id);
-                            }
-                          },
-                        ));
+                        return Card(child: SwitchListTile(title: Text(permission.name), subtitle: permission.description == null ? null : Text(permission.description!), value: assigned, activeColor: AppColors.gold, onChanged: _selectedUserId == null || busy ? null : (value) {
+                          if (value) {
+                            _cubit.assign(userId: _selectedUserId!, permissionId: permission.id);
+                          } else {
+                            _cubit.revoke(userId: _selectedUserId!, permissionId: permission.id);
+                          }
+                        }));
                       }),
                     ],
                   ),
