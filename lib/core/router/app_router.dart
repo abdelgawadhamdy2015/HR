@@ -36,6 +36,10 @@ class AppRouter {
           if (!onboardingDone) return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
           return onAuthScreen ? null : AppRoutes.login;
         }
+        if (loc == AppRoutes.permissions &&
+            !authCubit.state.currentUser!.hasPermission('Permissions.Manage')) {
+          return AppRoutes.home;
+        }
         if (onAuthScreen || loc == AppRoutes.splash || loc == AppRoutes.onboarding) return AppRoutes.home;
         return null;
       },
