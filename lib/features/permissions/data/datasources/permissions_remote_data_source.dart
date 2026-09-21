@@ -10,6 +10,10 @@ abstract class PermissionsRemoteDataSource {
   Future<PermissionModel> create({required String name, String? description});
   Future<void> assign({required int userId, required int permissionId});
   Future<void> revoke({required int userId, required int permissionId});
+  Future<List<PermissionModel>> updateUserPermissions({
+    required int userId,
+    required List<int> permissionIds,
+  });
 }
 
 class PermissionsRemoteDataSourceImpl implements PermissionsRemoteDataSource {
@@ -72,6 +76,22 @@ class PermissionsRemoteDataSourceImpl implements PermissionsRemoteDataSource {
         ApiConstants.revokePermission,
         data: {'userId': userId, 'permissionId': permissionId},
       );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  @override
+  Future<List<PermissionModel>> updateUserPermissions({
+    required int userId,
+    required List<int> permissionIds,
+  }) async {
+    try {
+      final response = await dio.put(
+        ApiConstants.updateUserPermissions(userId),
+        data: {'permissionIds': permissionIds},
+      );
+      return _parseList(response.data);
     } on DioException catch (e) {
       throw _mapDioError(e);
     }
