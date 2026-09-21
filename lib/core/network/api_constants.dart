@@ -12,6 +12,7 @@ class ApiConstants {
   static const String assignPermission = '/permissions/assign';
   static const String revokePermission = '/permissions/revoke';
   static String permissionsForUser(int userId) => '/permissions/user/$userId';
+  static String updateUserPermissions(int userId) => '/permissions/user/$userId';
   static const String users = '/users';
 
   static const String dashboardStats = '/dashboard/stats';
