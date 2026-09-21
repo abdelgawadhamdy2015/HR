@@ -26,11 +26,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   void initState() {
     super.initState();
     _cubit = sl<PermissionsCubit>()..load();
+
     final currentUserId = sl<AuthCubit>().state.currentUser?.id;
     _selectedUserId = widget.userId ?? currentUserId;
     _userIdController = TextEditingController(
       text: _selectedUserId?.toString() ?? '',
     );
+
     if (_selectedUserId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _cubit.selectUser(_selectedUserId!);
@@ -45,6 +47,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     super.dispose();
   }
 
+  bool get _canManage {
+    return sl<AuthCubit>().state.currentUser?.hasPermission(
+              'Permissions.Manage',
+            ) ??
+        false;
+  }
+
   void _loadUser() {
     final id = int.tryParse(_userIdController.text.trim());
     if (id == null || id <= 0) {
@@ -53,6 +62,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       );
       return;
     }
+
     setState(() => _selectedUserId = id);
     _cubit.selectUser(id);
   }
@@ -63,10 +73,46 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       value: _cubit,
       child: Scaffold(
         appBar: const AppTopBar(title: 'إدارة الصلاحيات'),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: AppColors.gold,
-          onPressed: () => _showCreatePermissionDialog(context),
-          child: const Icon(Icons.add, color: AppColors.background),
+        floatingActionButton: _canManage
+            ? FloatingActionButton(
+                backgroundColor: AppColors.gold,
+                onPressed: () => _showCreatePermissionDialog(context),
+                child: const Icon(
+                  Icons.add,
+                  color: AppColors.background,
+                ),
+              )
+            : null,
+        bottomNavigationBar: BlocBuilder<PermissionsCubit, PermissionsState>(
+          builder: (context, state) {
+            if (state is! PermissionsLoaded ||
+                state.selectedUserId == null ||
+                !_canManage ||
+                !state.hasUnsavedChanges) {
+              return const SizedBox.shrink();
+            }
+
+            final saving = state is PermissionActionLoading;
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: saving ? null : _cubit.save,
+                    icon: saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: const Text('حفظ تغييرات الصلاحيات'),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
         body: BlocConsumer<PermissionsCubit, PermissionsState>(
           listener: (context, state) {
@@ -74,6 +120,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(state.message)),
               );
+            }
+
+            if (state is PermissionsLoaded &&
+                !state.hasUnsavedChanges &&
+                state.selectedUserId != null) {
+              // Successful save/reload is intentionally silent.
             }
           },
           builder: (context, state) {
@@ -88,6 +140,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 : state is PermissionActionLoading
                     ? state.data
                     : null;
+
             if (data == null) {
               return Center(
                 child: ElevatedButton(
@@ -99,7 +152,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
             return RefreshIndicator(
               color: AppColors.gold,
-              onRefresh: _cubit.load,
+              onRefresh: () async {
+                await _cubit.load();
+                if (_selectedUserId != null) {
+                  await _cubit.selectUser(_selectedUserId!);
+                }
+              },
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
@@ -118,12 +176,14 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'يمكنك البدء بالمستخدم الحالي، أو إدخال User ID لمستخدم آخر إذا كانت لديك صلاحية Permissions.Manage.',
+                    _canManage
+                        ? 'فعّل أو عطّل أي صلاحية ثم اضغط حفظ. التغييرات تُحفظ دفعة واحدة في قاعدة البيانات.'
+                        : 'وضع العرض فقط. تحتاج إلى Permissions.Manage لتعديل صلاحيات المستخدم.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textMuted,
                         ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   if (_selectedUserId == null)
                     const Card(
                       child: Padding(
@@ -134,11 +194,22 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         ),
                       ),
                     )
+                  else if (data.permissions.isEmpty)
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          'لا توجد صلاحيات معرفة في قاعدة البيانات.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
                   else
                     ...data.permissions.map((permission) {
-                      final assigned = data.userPermissions
-                          .any((item) => item.id == permission.id);
-                      final busy = state is PermissionActionLoading;
+                      final assigned = data.selectedPermissionIds.contains(
+                        permission.id,
+                      );
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: SwitchListTile(
@@ -148,21 +219,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                               : Text(permission.description!),
                           value: assigned,
                           activeColor: AppColors.gold,
-                          onChanged: busy
+                          onChanged: !_canManage ||
+                                  state is PermissionActionLoading
                               ? null
-                              : (value) {
-                                  if (value) {
-                                    _cubit.assign(
-                                      userId: _selectedUserId!,
-                                      permissionId: permission.id,
-                                    );
-                                  } else {
-                                    _cubit.revoke(
-                                      userId: _selectedUserId!,
-                                      permissionId: permission.id,
-                                    );
-                                  }
-                                },
+                              : (value) => _cubit.togglePermission(
+                                    permission.id,
+                                    value,
+                                  ),
                         ),
                       );
                     }),
@@ -214,6 +277,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               Navigator.pop(dialogContext);
+
               _cubit.create(
                 name: nameController.text.trim(),
                 description: descriptionController.text.trim().isEmpty
@@ -226,6 +290,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         ],
       ),
     );
+
     nameController.dispose();
     descriptionController.dispose();
   }
