@@ -7,4 +7,8 @@ abstract class PermissionsRepository {
   Future<Result<Permission>> create({required String name, String? description});
   Future<Result<void>> assign({required int userId, required int permissionId});
   Future<Result<void>> revoke({required int userId, required int permissionId});
+  Future<Result<List<Permission>>> updateUserPermissions({
+    required int userId,
+    required List<int> permissionIds,
+  });
 }
