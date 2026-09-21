@@ -5,34 +5,29 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../domain/entities/user_summary.dart';
 import '../cubit/permissions_cubit.dart';
 import '../cubit/permissions_state.dart';
 
 class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key, this.userId});
-
   final int? userId;
-
   @override
   State<PermissionsScreen> createState() => _PermissionsScreenState();
 }
 
 class _PermissionsScreenState extends State<PermissionsScreen> {
   late final PermissionsCubit _cubit;
-  late final TextEditingController _userIdController;
+  late final TextEditingController _searchController;
   int? _selectedUserId;
+  String _search = '';
 
   @override
   void initState() {
     super.initState();
     _cubit = sl<PermissionsCubit>()..load();
-
-    final currentUserId = sl<AuthCubit>().state.currentUser?.id;
-    _selectedUserId = widget.userId ?? currentUserId;
-    _userIdController = TextEditingController(
-      text: _selectedUserId?.toString() ?? '',
-    );
-
+    _searchController = TextEditingController();
+    _selectedUserId = widget.userId;
     if (_selectedUserId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _cubit.selectUser(_selectedUserId!);
@@ -42,29 +37,30 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
   @override
   void dispose() {
-    _userIdController.dispose();
+    _searchController.dispose();
     _cubit.close();
     super.dispose();
   }
 
-  bool get _canManage {
-    return sl<AuthCubit>().state.currentUser?.hasPermission(
-              'Permissions.Manage',
-            ) ??
-        false;
-  }
+  bool get _canManage =>
+      sl<AuthCubit>().state.currentUser?.hasPermission('Permissions.Manage') ??
+      false;
 
-  void _loadUser() {
-    final id = int.tryParse(_userIdController.text.trim());
-    if (id == null || id <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل رقم مستخدم صحيح')),
-      );
-      return;
-    }
-
+  void _selectUser(int? id) {
+    if (id == null) return;
     setState(() => _selectedUserId = id);
     _cubit.selectUser(id);
+  }
+
+  List<UserSummary> _filteredUsers(List<UserSummary> users) {
+    final query = _search.trim().toLowerCase();
+    if (query.isEmpty) return users;
+    return users.where((user) {
+      return user.displayName.toLowerCase().contains(query) ||
+          user.username.toLowerCase().contains(query) ||
+          user.id.toString().contains(query) ||
+          (user.email?.toLowerCase().contains(query) ?? false);
+    }).toList();
   }
 
   @override
@@ -77,21 +73,22 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             ? FloatingActionButton(
                 backgroundColor: AppColors.gold,
                 onPressed: () => _showCreatePermissionDialog(context),
-                child: const Icon(
-                  Icons.add,
-                  color: AppColors.background,
-                ),
+                child: const Icon(Icons.add, color: AppColors.background),
               )
             : null,
         bottomNavigationBar: BlocBuilder<PermissionsCubit, PermissionsState>(
           builder: (context, state) {
-            if (state is! PermissionsLoaded ||
-                state.selectedUserId == null ||
+            final data = state is PermissionsLoaded
+                ? state
+                : state is PermissionActionLoading
+                    ? state.data
+                    : null;
+            if (data == null ||
+                data.selectedUserId == null ||
                 !_canManage ||
-                !state.hasUnsavedChanges) {
+                !data.hasUnsavedChanges) {
               return const SizedBox.shrink();
             }
-
             final saving = state is PermissionActionLoading;
             return SafeArea(
               child: Padding(
@@ -121,12 +118,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 SnackBar(content: Text(state.message)),
               );
             }
-
-            if (state is PermissionsLoaded &&
-                !state.hasUnsavedChanges &&
-                state.selectedUserId != null) {
-              // Successful save/reload is intentionally silent.
-            }
           },
           builder: (context, state) {
             if (state is PermissionsLoading || state is PermissionsInitial) {
@@ -150,6 +141,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
               );
             }
 
+            final users = _filteredUsers(data.users);
+            final selectedExists =
+                data.users.any((u) => u.id == _selectedUserId);
+
             return RefreshIndicator(
               color: AppColors.gold,
               onRefresh: () async {
@@ -162,26 +157,64 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   TextField(
-                    controller: _userIdController,
-                    keyboardType: TextInputType.number,
+                    controller: _searchController,
                     decoration: InputDecoration(
-                      labelText: 'رقم المستخدم User ID',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: _loadUser,
+                      labelText: 'بحث عن المستخدم',
+                      hintText: 'الاسم أو اسم المستخدم أو البريد أو ID',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _search.isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _search = '');
+                              },
+                              icon: const Icon(Icons.clear),
+                            ),
+                    ),
+                    onChanged: (value) => setState(() => _search = value),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    value: selectedExists ? _selectedUserId : null,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'المستخدم',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    hint: const Text('اختر المستخدم'),
+                    items: users.map((user) {
+                      return DropdownMenuItem<int>(
+                        value: user.id,
+                        child: Text(
+                          user.displayName +
+                              ' (@' +
+                              user.username +
+                              ') • #' +
+                              user.id.toString(),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged:
+                        state is PermissionActionLoading ? null : _selectUser,
+                  ),
+                  if (data.users.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        'لا يوجد مستخدمون في قاعدة البيانات.',
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    onSubmitted: (_) => _loadUser(),
-                  ),
                   const SizedBox(height: 8),
                   Text(
                     _canManage
-                        ? 'فعّل أو عطّل أي صلاحية ثم اضغط حفظ. التغييرات تُحفظ دفعة واحدة في قاعدة البيانات.'
-                        : 'وضع العرض فقط. تحتاج إلى Permissions.Manage لتعديل صلاحيات المستخدم.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textMuted,
-                        ),
+                        ? 'اختر مستخدمًا، ثم فعّل أو عطّل الصلاحيات. لا يتم تعديل قاعدة البيانات حتى تضغط حفظ.'
+                        : 'وضع العرض فقط. تحتاج إلى Permissions.Manage لتعديل الصلاحيات.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 20),
                   if (_selectedUserId == null)
@@ -189,7 +222,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       child: Padding(
                         padding: EdgeInsets.all(20),
                         child: Text(
-                          'أدخل User ID لعرض الصلاحيات الخاصة بالمستخدم.',
+                          'اختر مستخدمًا لعرض صلاحياته.',
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -206,10 +239,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     )
                   else
                     ...data.permissions.map((permission) {
-                      final assigned = data.selectedPermissionIds.contains(
-                        permission.id,
-                      );
-
+                      final assigned =
+                          data.selectedPermissionIds.contains(permission.id);
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: SwitchListTile(
@@ -222,10 +253,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           onChanged: !_canManage ||
                                   state is PermissionActionLoading
                               ? null
-                              : (value) => _cubit.togglePermission(
-                                    permission.id,
-                                    value,
-                                  ),
+                              : (value) =>
+                                  _cubit.togglePermission(permission.id, value),
                         ),
                       );
                     }),
@@ -254,10 +283,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             children: [
               TextFormField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'اسم الصلاحية'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'أدخل اسم الصلاحية'
-                    : null,
+                decoration:
+                    const InputDecoration(labelText: 'اسم الصلاحية'),
+                validator: (value) =>
+                    value == null || value.trim().isEmpty
+                        ? 'أدخل اسم الصلاحية'
+                        : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -277,7 +308,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               Navigator.pop(dialogContext);
-
               _cubit.create(
                 name: nameController.text.trim(),
                 description: descriptionController.text.trim().isEmpty
