@@ -53,6 +53,7 @@ import '../../features/permissions/domain/usecases/get_permissions.dart'
     as permissions;
 import '../../features/permissions/domain/usecases/get_user_permissions.dart';
 import '../../features/permissions/domain/usecases/revoke_permission.dart';
+import '../../features/permissions/domain/usecases/update_user_permissions.dart';
 import '../../features/permissions/presentation/cubit/permissions_cubit.dart';
 
 final sl = GetIt.instance;
@@ -135,6 +136,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => CreatePermission(sl()));
   sl.registerLazySingleton(() => AssignPermission(sl()));
   sl.registerLazySingleton(() => RevokePermission(sl()));
+  sl.registerLazySingleton(() => UpdateUserPermissions(sl()));
   sl.registerLazySingleton<permissions.GetPermissions>(
     () => permissions.GetPermissions(sl()),
   );
@@ -144,5 +146,6 @@ Future<void> initDependencies() async {
         createPermission: sl<CreatePermission>(),
         assignPermission: sl<AssignPermission>(),
         revokePermission: sl<RevokePermission>(),
+        updateUserPermissions: sl<UpdateUserPermissions>(),
       ));
 }
