@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hr_attendance_app/features/auth/data/models/auth_request_models.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
@@ -12,7 +14,11 @@ class AuthCubit extends Cubit<AuthState> {
   final LogoutUseCase _logoutUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
 
-  AuthCubit({required LoginUseCase loginUseCase, required RegisterUseCase registerUseCase, required LogoutUseCase logoutUseCase, required GetCurrentUserUseCase getCurrentUserUseCase})
+  AuthCubit(
+      {required LoginUseCase loginUseCase,
+      required RegisterUseCase registerUseCase,
+      required LogoutUseCase logoutUseCase,
+      required GetCurrentUserUseCase getCurrentUserUseCase})
       : _loginUseCase = loginUseCase,
         _registerUseCase = registerUseCase,
         _logoutUseCase = logoutUseCase,
@@ -23,7 +29,11 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(status: AuthStatus.loading));
     try {
       final user = await _getCurrentUserUseCase();
-      emit(state.copyWith(status: user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated, currentUser: user));
+      emit(state.copyWith(
+          status: user != null
+              ? AuthStatus.authenticated
+              : AuthStatus.unauthenticated,
+          currentUser: user));
     } catch (_) {
       emit(state.copyWith(status: AuthStatus.unauthenticated));
     }
@@ -38,7 +48,10 @@ class AuthCubit extends Cubit<AuthState> {
         await logout();
         return;
       }
-      emit(state.copyWith(status: AuthStatus.authenticated, currentUser: user, errorMessage: null));
+      emit(state.copyWith(
+          status: AuthStatus.authenticated,
+          currentUser: user,
+          errorMessage: null));
     } catch (_) {
       // Keep the existing session if a transient refresh fails.
     }
@@ -48,10 +61,14 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
     try {
       final data = await _loginUseCase(request: request);
-      emit(state.copyWith(status: AuthStatus.authenticated, currentUser: data.user));
+      log(data.toJson().toString());
+      emit(state.copyWith(
+          status: AuthStatus.authenticated, currentUser: data.toEntity()));
       return true;
     } catch (e) {
-      emit(state.copyWith(status: AuthStatus.error, errorMessage: e.toString().replaceFirst('Exception: ', '')));
+      emit(state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: e.toString().replaceFirst('Exception: ', '')));
       return false;
     }
   }
@@ -60,10 +77,13 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
     try {
       final data = await _registerUseCase(request: request);
-      emit(state.copyWith(status: AuthStatus.authenticated, currentUser: data.user));
+      emit(state.copyWith(
+          status: AuthStatus.authenticated, currentUser: data.toEntity()));
       return true;
     } catch (e) {
-      emit(state.copyWith(status: AuthStatus.error, errorMessage: e.toString().replaceFirst('Exception: ', '')));
+      emit(state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: e.toString().replaceFirst('Exception: ', '')));
       return false;
     }
   }
@@ -73,5 +93,6 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthState(status: AuthStatus.unauthenticated));
   }
 
-  bool hasPermission(String permission) => state.currentUser?.hasPermission(permission) ?? false;
+  bool hasPermission(String permission) =>
+      state.currentUser?.hasPermission(permission) ?? false;
 }

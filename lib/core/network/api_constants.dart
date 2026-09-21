@@ -1,7 +1,8 @@
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://0.0.0.0:5080/api');
+  static const String baseUrl = String.fromEnvironment('API_BASE_URL',
+      defaultValue: "http://10.0.2.2:5080/api");
 
   static const String register = '/auth/register';
   static const String login = '/auth/login';
@@ -35,8 +36,10 @@ class ApiConstants {
   static const String attendanceReportActions = '/AttendanceReports/actions';
   static const String attendanceReportDaily = '/AttendanceReports/daily';
   static const String attendanceReportLate = '/AttendanceReports/late';
-  static String attendanceReportEmployee(int id) => '/AttendanceReports/employee/$id';
-  static String attendanceReportEmployeePdf(int id) => '/AttendanceReports/pdf/employee/$id';
+  static String attendanceReportEmployee(int id) =>
+      '/AttendanceReports/employee/$id';
+  static String attendanceReportEmployeePdf(int id) =>
+      '/AttendanceReports/pdf/employee/$id';
 
   static const String missions = '/missions';
   static const String permissionRequests = '/permission-requests';
