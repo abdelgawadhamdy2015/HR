@@ -8,6 +8,7 @@ import '../../domain/usecases/create_permission.dart';
 import '../../domain/usecases/get_permissions.dart';
 import '../../domain/usecases/get_user_permissions.dart';
 import '../../domain/usecases/revoke_permission.dart';
+import '../../domain/usecases/update_user_permissions.dart';
 import 'permissions_state.dart';
 
 class PermissionsCubit extends Cubit<PermissionsState> {
@@ -16,6 +17,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
   final CreatePermission createPermission;
   final AssignPermission assignPermission;
   final RevokePermission revokePermission;
+  final UpdateUserPermissions updateUserPermissions;
 
   PermissionsCubit({
     required this.getPermissions,
@@ -23,6 +25,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     required this.createPermission,
     required this.assignPermission,
     required this.revokePermission,
+    required this.updateUserPermissions,
   }) : super(const PermissionsInitial());
 
   Future<void> load() async {
@@ -41,43 +44,95 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     final result = await getUserPermissions(userId);
     result.fold(
       (failure) => emit(PermissionsError(failure.message)),
-      (userPermissions) => emit(PermissionsLoaded(
-        permissions: current?.permissions ?? const <Permission>[],
-        selectedUserId: userId,
-        userPermissions: userPermissions,
-      )),
+      (userPermissions) {
+        final assignedIds = userPermissions.map((p) => p.id).toSet();
+        emit(PermissionsLoaded(
+          permissions: current?.permissions ?? const <Permission>[],
+          selectedUserId: userId,
+          userPermissions: userPermissions,
+          selectedPermissionIds: assignedIds,
+        ));
+      },
     );
   }
 
   Future<void> selectUser(int userId) => loadUserPermissions(userId);
+
+  void togglePermission(int permissionId, bool enabled) {
+    final current = _loadedState;
+    if (current == null) return;
+
+    final ids = {...current.selectedPermissionIds};
+    if (enabled) {
+      ids.add(permissionId);
+    } else {
+      ids.remove(permissionId);
+    }
+
+    emit(current.copyWith(selectedPermissionIds: ids));
+  }
+
+  Future<void> save() async {
+    final current = _loadedState;
+    final userId = current?.selectedUserId;
+    if (current == null || userId == null || !current.hasUnsavedChanges) return;
+
+    emit(PermissionActionLoading(current));
+    final result = await updateUserPermissions(
+      userId: userId,
+      permissionIds: current.selectedPermissionIds.toList()..sort(),
+    );
+
+    result.fold(
+      (failure) => emit(PermissionsError(failure.message)),
+      (userPermissions) => emit(PermissionsLoaded(
+        permissions: current.permissions,
+        selectedUserId: userId,
+        userPermissions: userPermissions,
+        selectedPermissionIds: userPermissions.map((p) => p.id).toSet(),
+      )),
+    );
+  }
 
   Future<void> create({required String name, String? description}) async {
     final current = _loadedState;
     if (current == null) return;
 
     emit(PermissionActionLoading(current));
-    final result = await createPermission(name: name, description: description);
+    final result =
+        await createPermission(name: name, description: description);
     await result.fold(
       (failure) async => emit(PermissionsError(failure.message)),
       (_) async {
+        final selectedUserId = current.selectedUserId;
         await load();
-        if (current.selectedUserId != null) {
-          await loadUserPermissions(current.selectedUserId!);
+        if (selectedUserId != null) {
+          await loadUserPermissions(selectedUserId);
         }
       },
     );
   }
 
-  Future<void> assign({required int userId, required int permissionId}) {
+  // Kept for compatibility with existing callers.
+  Future<void> assign({
+    required int userId,
+    required int permissionId,
+  }) {
     return _changeAssignment(
-      action: () => assignPermission(userId: userId, permissionId: permissionId),
+      action: () =>
+          assignPermission(userId: userId, permissionId: permissionId),
       userId: userId,
     );
   }
 
-  Future<void> revoke({required int userId, required int permissionId}) {
+  // Kept for compatibility with existing callers.
+  Future<void> revoke({
+    required int userId,
+    required int permissionId,
+  }) {
     return _changeAssignment(
-      action: () => revokePermission(userId: userId, permissionId: permissionId),
+      action: () =>
+          revokePermission(userId: userId, permissionId: permissionId),
       userId: userId,
     );
   }
