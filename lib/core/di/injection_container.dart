@@ -26,8 +26,7 @@ import '../../features/employee/domain/usecases/get_employee_month_details.dart'
 import '../../features/employee/domain/usecases/get_employees.dart';
 import '../../features/employee/domain/usecases/get_lateness.dart';
 import '../../features/employee/domain/usecases/get_missions.dart';
-import '../../features/employee/domain/usecases/get_permissions.dart'
-    as employee_permissions;
+import '../../features/employee/domain/usecases/get_permissions.dart' as employee_permissions;
 import '../../features/employee/presentation/cubit/employee_details_cubit.dart';
 import '../../features/employee/presentation/cubit/employee_list_cubit.dart';
 import '../../features/attendance/data/datasources/attendance_actions_remote_data_source.dart';
@@ -49,9 +48,9 @@ import '../../features/permissions/data/repositories/permissions_repository_impl
 import '../../features/permissions/domain/repositories/permissions_repository.dart';
 import '../../features/permissions/domain/usecases/assign_permission.dart';
 import '../../features/permissions/domain/usecases/create_permission.dart';
-import '../../features/permissions/domain/usecases/get_permissions.dart'
-    as permissions;
+import '../../features/permissions/domain/usecases/get_permissions.dart' as permissions;
 import '../../features/permissions/domain/usecases/get_user_permissions.dart';
+import '../../features/permissions/domain/usecases/get_users.dart';
 import '../../features/permissions/domain/usecases/revoke_permission.dart';
 import '../../features/permissions/domain/usecases/update_user_permissions.dart';
 import '../../features/permissions/presentation/cubit/permissions_cubit.dart';
@@ -64,88 +63,48 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<AuthDataSource>(() => AuthDataSource(sl<Dio>()));
   sl.registerLazySingleton<OnboardingStorage>(() => OnboardingStorage());
   sl.registerLazySingleton<TokenStorage>(() => TokenStorage());
-  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
-      datasource: sl<AuthDataSource>(), tokenStorage: sl<TokenStorage>()));
+  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(datasource: sl<AuthDataSource>(), tokenStorage: sl<TokenStorage>()));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
-  sl.registerLazySingleton<AuthCubit>(() => AuthCubit(
-      loginUseCase: sl(),
-      registerUseCase: sl(),
-      logoutUseCase: sl(),
-      getCurrentUserUseCase: sl()));
-  sl.registerLazySingleton<DashboardRemoteDataSource>(
-      () => DashboardRemoteDataSourceImpl(sl()));
-  sl.registerLazySingleton<DashboardRepository>(
-      () => DashboardRepositoryImpl(sl()));
+  sl.registerLazySingleton<AuthCubit>(() => AuthCubit(loginUseCase: sl(), registerUseCase: sl(), logoutUseCase: sl(), getCurrentUserUseCase: sl()));
+  sl.registerLazySingleton<DashboardRemoteDataSource>(() => DashboardRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetDashboardStats(sl()));
   sl.registerLazySingleton(() => GetNotifications(sl()));
-  sl.registerFactory(
-      () => DashboardCubit(getDashboardStats: sl(), getNotifications: sl()));
-  sl.registerLazySingleton<EmployeeRemoteDataSource>(
-      () => EmployeeRemoteDataSourceImpl(sl()));
-  sl.registerLazySingleton<EmployeeRepository>(
-      () => EmployeeRepositoryImpl(sl()));
+  sl.registerFactory(() => DashboardCubit(getDashboardStats: sl(), getNotifications: sl()));
+  sl.registerLazySingleton<EmployeeRemoteDataSource>(() => EmployeeRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<EmployeeRepository>(() => EmployeeRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetEmployees(sl()));
   sl.registerLazySingleton(() => CreateEmployee(sl()));
   sl.registerLazySingleton(() => GetEmployeeById(sl()));
   sl.registerLazySingleton(() => GetEmployeeMonthDetails(sl()));
   sl.registerLazySingleton(() => GetMissions(sl()));
-  sl.registerLazySingleton<employee_permissions.GetPermissions>(
-    () => employee_permissions.GetPermissions(sl()),
-  );
+  sl.registerLazySingleton<employee_permissions.GetPermissions>(() => employee_permissions.GetPermissions(sl()));
   sl.registerLazySingleton(() => GetLateness(sl()));
-  sl.registerFactory(
-      () => EmployeeListCubit(getEmployees: sl(), createEmployeeUseCase: sl()));
-  sl.registerFactoryParam<EmployeeDetailsCubit, int, void>((employeeId, _) =>
-      EmployeeDetailsCubit(
-          employeeId: employeeId,
-          getEmployeeById: sl(),
-          getEmployeeMonthDetails: sl(),
-          getMissions: sl(),
-          getPermissions: sl(),
-          getLateness: sl()));
-  sl.registerLazySingleton<AttendanceActionsRemoteDataSource>(
-      () => AttendanceActionsRemoteDataSourceImpl(sl()));
-  sl.registerLazySingleton<AttendanceActionsRepository>(
-      () => AttendanceActionsRepositoryImpl(sl()));
+  sl.registerFactory(() => EmployeeListCubit(getEmployees: sl(), createEmployeeUseCase: sl()));
+  sl.registerFactoryParam<EmployeeDetailsCubit, int, void>((employeeId, _) => EmployeeDetailsCubit(employeeId: employeeId, getEmployeeById: sl(), getEmployeeMonthDetails: sl(), getMissions: sl(), getPermissions: sl(), getLateness: sl()));
+  sl.registerLazySingleton<AttendanceActionsRemoteDataSource>(() => AttendanceActionsRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<AttendanceActionsRepository>(() => AttendanceActionsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => CheckIn(sl()));
   sl.registerLazySingleton(() => CheckOut(sl()));
   sl.registerLazySingleton(() => MarkAttendanceDay(sl()));
   sl.registerLazySingleton(() => RecordLateness(sl()));
   sl.registerLazySingleton(() => CreateMission(sl()));
   sl.registerLazySingleton(() => CreatePermissionRequest(sl()));
-  sl.registerFactory(() => AttendanceActionsCubit(
-      checkInUseCase: sl(),
-      checkOutUseCase: sl(),
-      markAttendanceDayUseCase: sl(),
-      recordLatenessUseCase: sl(),
-      createMissionUseCase: sl(),
-      createPermissionRequestUseCase: sl()));
-  sl.registerLazySingleton<AttendanceReportsRemoteDataSource>(
-      () => AttendanceReportsRemoteDataSourceImpl(sl()));
-  sl.registerLazySingleton<AttendanceReportsRepository>(
-      () => AttendanceReportsRepositoryImpl(sl()));
+  sl.registerFactory(() => AttendanceActionsCubit(checkInUseCase: sl(), checkOutUseCase: sl(), markAttendanceDayUseCase: sl(), recordLatenessUseCase: sl(), createMissionUseCase: sl(), createPermissionRequestUseCase: sl()));
+  sl.registerLazySingleton<AttendanceReportsRemoteDataSource>(() => AttendanceReportsRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<AttendanceReportsRepository>(() => AttendanceReportsRepositoryImpl(sl()));
   sl.registerFactory(() => AttendanceReportsCubit(sl()));
-  sl.registerLazySingleton<PermissionsRemoteDataSource>(
-      () => PermissionsRemoteDataSourceImpl(sl()));
-  sl.registerLazySingleton<PermissionsRepository>(
-      () => PermissionsRepositoryImpl(sl()));
+  sl.registerLazySingleton<PermissionsRemoteDataSource>(() => PermissionsRemoteDataSourceImpl(sl()));
+  sl.registerLazySingleton<PermissionsRepository>(() => PermissionsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetUserPermissions(sl()));
+  sl.registerLazySingleton(() => GetUsers(sl()));
   sl.registerLazySingleton(() => CreatePermission(sl()));
   sl.registerLazySingleton(() => AssignPermission(sl()));
   sl.registerLazySingleton(() => RevokePermission(sl()));
   sl.registerLazySingleton(() => UpdateUserPermissions(sl()));
-  sl.registerLazySingleton<permissions.GetPermissions>(
-    () => permissions.GetPermissions(sl()),
-  );
-  sl.registerFactory(() => PermissionsCubit(
-        getPermissions: sl(),
-        getUserPermissions: sl<GetUserPermissions>(),
-        createPermission: sl<CreatePermission>(),
-        assignPermission: sl<AssignPermission>(),
-        revokePermission: sl<RevokePermission>(),
-        updateUserPermissions: sl<UpdateUserPermissions>(),
-      ));
+  sl.registerLazySingleton<permissions.GetPermissions>(() => permissions.GetPermissions(sl()));
+  sl.registerFactory(() => PermissionsCubit(getPermissions: sl(), getUserPermissions: sl<GetUserPermissions>(), getUsers: sl<GetUsers>(), createPermission: sl<CreatePermission>(), assignPermission: sl<AssignPermission>(), revokePermission: sl<RevokePermission>(), updateUserPermissions: sl<UpdateUserPermissions>()));
 }
