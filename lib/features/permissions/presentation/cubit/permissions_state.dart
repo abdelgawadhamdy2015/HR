@@ -21,27 +21,45 @@ class PermissionsLoaded extends PermissionsState {
   final List<Permission> permissions;
   final int? selectedUserId;
   final List<Permission> userPermissions;
+  final Set<int> selectedPermissionIds;
 
   const PermissionsLoaded({
     required this.permissions,
     this.selectedUserId,
     this.userPermissions = const [],
-  });
+    Set<int>? selectedPermissionIds,
+  }) : selectedPermissionIds =
+            selectedPermissionIds ??
+            const <int>{};
+
+  bool get hasUnsavedChanges {
+    final assignedIds = userPermissions.map((p) => p.id).toSet();
+    return assignedIds.length != selectedPermissionIds.length ||
+        !assignedIds.containsAll(selectedPermissionIds);
+  }
 
   PermissionsLoaded copyWith({
     List<Permission>? permissions,
     int? selectedUserId,
     List<Permission>? userPermissions,
+    Set<int>? selectedPermissionIds,
   }) {
     return PermissionsLoaded(
       permissions: permissions ?? this.permissions,
       selectedUserId: selectedUserId ?? this.selectedUserId,
       userPermissions: userPermissions ?? this.userPermissions,
+      selectedPermissionIds:
+          selectedPermissionIds ?? this.selectedPermissionIds,
     );
   }
 
   @override
-  List<Object?> get props => [permissions, selectedUserId, userPermissions];
+  List<Object?> get props => [
+        permissions,
+        selectedUserId,
+        userPermissions,
+        selectedPermissionIds,
+      ];
 }
 
 class PermissionsError extends PermissionsState {
