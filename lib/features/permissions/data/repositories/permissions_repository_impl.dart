@@ -42,9 +42,14 @@ class PermissionsRepositoryImpl implements PermissionsRepository {
   }
 
   @override
-  Future<Result<Permission>> create({required String name, String? description}) async {
+  Future<Result<Permission>> create({
+    required String name,
+    String? description,
+  }) async {
     try {
-      return Success(await remoteDataSource.create(name: name, description: description));
+      return Success(
+        await remoteDataSource.create(name: name, description: description),
+      );
     } on NetworkException catch (e) {
       return Error(NetworkFailure(e.message));
     } on ValidationException catch (e) {
@@ -61,9 +66,15 @@ class PermissionsRepositoryImpl implements PermissionsRepository {
   }
 
   @override
-  Future<Result<void>> assign({required int userId, required int permissionId}) async {
+  Future<Result<void>> assign({
+    required int userId,
+    required int permissionId,
+  }) async {
     try {
-      await remoteDataSource.assign(userId: userId, permissionId: permissionId);
+      await remoteDataSource.assign(
+        userId: userId,
+        permissionId: permissionId,
+      );
       return const Success(null);
     } on NetworkException catch (e) {
       return Error(NetworkFailure(e.message));
@@ -79,12 +90,45 @@ class PermissionsRepositoryImpl implements PermissionsRepository {
   }
 
   @override
-  Future<Result<void>> revoke({required int userId, required int permissionId}) async {
+  Future<Result<void>> revoke({
+    required int userId,
+    required int permissionId,
+  }) async {
     try {
-      await remoteDataSource.revoke(userId: userId, permissionId: permissionId);
+      await remoteDataSource.revoke(
+        userId: userId,
+        permissionId: permissionId,
+      );
       return const Success(null);
     } on NetworkException catch (e) {
       return Error(NetworkFailure(e.message));
+    } on NotFoundException catch (e) {
+      return Error(NotFoundFailure(e.message));
+    } on ForbiddenException catch (e) {
+      return Error(ForbiddenFailure(e.message));
+    } on ServerException catch (e) {
+      return Error(ServerFailure(e.message));
+    } catch (_) {
+      return const Error(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Result<List<Permission>>> updateUserPermissions({
+    required int userId,
+    required List<int> permissionIds,
+  }) async {
+    try {
+      return Success(
+        await remoteDataSource.updateUserPermissions(
+          userId: userId,
+          permissionIds: permissionIds,
+        ),
+      );
+    } on NetworkException catch (e) {
+      return Error(NetworkFailure(e.message));
+    } on ValidationException catch (e) {
+      return Error(ValidationFailure(e.message));
     } on NotFoundException catch (e) {
       return Error(NotFoundFailure(e.message));
     } on ForbiddenException catch (e) {
