@@ -96,8 +96,7 @@ class _DashboardView extends StatelessWidget {
                   iconColor: AppColors.gold,
                   label: 'المأموريات',
                   onTap: () => openAttendance(3)),
-            if (can('Reports.View'))
-              QuickActionButton(
+            QuickActionButton(
                   icon: Icons.assignment_outlined,
                   iconColor: AppColors.gold,
                   label: 'تقارير الحضور',
@@ -197,8 +196,7 @@ class _DashboardView extends StatelessWidget {
                       children: quickActions),
                   const SizedBox(height: 24),
                 ],
-                if (can('Notifications.View'))
-                  Card(
+                Card(
                       child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -230,10 +228,10 @@ class _DashboardView extends StatelessWidget {
       bottomNavigationBar: AppBottomNav(
         currentIndex: 2,
         onTap: (i) {
-          if (i == 0 && can('Reports.View')) {
+          if (i == 0) {
             context.push(AppRoutes.attendanceReports);
           }
-          if (i == 1 && can('Notifications.View')) {
+          if (i == 1) {
             context.push(AppRoutes.notifications);
           }
           if (i == 3 && can('Employees.View')) {
