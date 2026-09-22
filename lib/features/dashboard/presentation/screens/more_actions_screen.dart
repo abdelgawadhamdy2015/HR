@@ -25,9 +25,9 @@ class MoreActionsScreen extends StatelessWidget {
     final actions = <Widget>[
       if (can('Employees.View')) _Action(icon: Icons.groups_outlined, title: 'الموظفون', onTap: () => context.push(AppRoutes.employees)),
       if (can('Attendance.Manage')) _Action(icon: Icons.fingerprint, title: 'إجراءات الحضور', onTap: () => context.push(AppRoutes.attendanceActions)),
-      if (can('Reports.View')) _Action(icon: Icons.assignment_outlined, title: 'تقارير الحضور', onTap: () => context.push(AppRoutes.attendanceReports)),
+      _Action(icon: Icons.assignment_outlined, title: 'تقارير الحضور', onTap: () => context.push(AppRoutes.attendanceReports)),
       if (can('Permissions.View')) _Action(icon: Icons.admin_panel_settings_outlined, title: canManagePermissions ? 'إدارة الصلاحيات' : 'عرض الصلاحيات', onTap: () => context.push(AppRoutes.permissions)),
-      if (can('Notifications.View')) _Action(icon: Icons.notifications_none, title: 'الإشعارات', onTap: () => context.push(AppRoutes.notifications)),
+      _Action(icon: Icons.notifications_none, title: 'الإشعارات', onTap: () => context.push(AppRoutes.notifications)),
       if (can('AuditLogs.View')) _Action(icon: Icons.history, title: 'سجل العمليات', onTap: () => context.push(AppRoutes.auditLogs)),
     ];
 
