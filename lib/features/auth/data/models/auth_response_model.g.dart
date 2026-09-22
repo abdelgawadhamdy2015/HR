@@ -8,14 +8,24 @@ part of 'auth_response_model.dart';
 
 AuthResponseModel _$AuthResponseModelFromJson(Map<String, dynamic> json) =>
     AuthResponseModel(
+      userId: (json['userId'] as num?)?.toInt(),
+      username: json['username'] as String?,
+      email: json['email'] as String?,
       token: json['token'] as String?,
-      user: json['user'] == null
+      expiresAt: json['expiresAt'] == null
           ? null
-          : AuthUserModel.fromJson(json['user'] as Map<String, dynamic>),
+          : DateTime.parse(json['expiresAt'] as String),
+      permissions: (json['permissions'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$AuthResponseModelToJson(AuthResponseModel instance) =>
     <String, dynamic>{
+      'userId': instance.userId,
+      'username': instance.username,
+      'email': instance.email,
       'token': instance.token,
-      'user': instance.user,
+      'expiresAt': instance.expiresAt?.toIso8601String(),
+      'permissions': instance.permissions,
     };

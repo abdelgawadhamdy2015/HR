@@ -13,33 +13,43 @@ class AttendanceReportsCubit extends Cubit<AttendanceReportsState> {
   Future<void> loadReport(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getReport(request);
-    result.fold(
-      (failure) => emit(AttendanceReportsError(_message(failure))),
-      (data) => emit(AttendanceReportsLoaded(data)),
-    );
+    result.fold((failure) => emit(AttendanceReportsError(_message(failure))), (data) => emit(AttendanceReportsLoaded(data)));
+  }
+
+  Future<void> loadDailyReport({required DateTime date, int? employeeId, String? department}) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getDailyReport(date: date, employeeId: employeeId, department: department);
+    result.fold((failure) => emit(AttendanceReportsError(_message(failure))), (data) => emit(AttendanceReportsLoaded(data)));
+  }
+
+  Future<void> loadLateReport(AttendanceReportRequestModel request) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getLateReport(request);
+    result.fold((failure) => emit(AttendanceReportsError(_message(failure))), (data) => emit(AttendanceReportsLoaded(data)));
+  }
+
+  Future<void> loadEmployeeReport({required int employeeId, required DateTime fromDate, required DateTime toDate}) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getEmployeeReport(employeeId, fromDate, toDate);
+    result.fold((failure) => emit(AttendanceReportsError(_message(failure))), (data) => emit(AttendanceReportsLoaded(data)));
   }
 
   Future<void> loadActions(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getActions(request);
-    result.fold(
-      (failure) => emit(AttendanceReportsError(_message(failure))),
-      (data) => emit(AttendanceReportsActionsLoaded(data)),
-    );
+    result.fold((failure) => emit(AttendanceReportsError(_message(failure))), (data) => emit(AttendanceReportsActionsLoaded(data)));
   }
 
   Future<List<int>?> loadPdf(AttendanceReportRequestModel request) async {
     emit(const AttendanceReportsLoading());
     final result = await repository.getPdf(request);
-    List<int>? bytes;
-    result.fold(
-      (failure) => emit(AttendanceReportsError(_message(failure))),
-      (data) {
-        bytes = data;
-        emit(AttendanceReportsPdfLoaded(data));
-      },
-    );
-    return bytes;
+    return result.fold((failure) { emit(AttendanceReportsError(_message(failure))); return null; }, (data) { emit(AttendanceReportsPdfLoaded(data)); return data; });
+  }
+
+  Future<List<int>?> loadEmployeePdf({required int employeeId, required DateTime fromDate, required DateTime toDate}) async {
+    emit(const AttendanceReportsLoading());
+    final result = await repository.getEmployeePdf(employeeId, fromDate, toDate);
+    return result.fold((failure) { emit(AttendanceReportsError(_message(failure))); return null; }, (data) { emit(AttendanceReportsPdfLoaded(data)); return data; });
   }
 
   String _message(Failure failure) => failure.message;

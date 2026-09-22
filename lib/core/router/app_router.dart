@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_actions_screen.dart';
+import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_check_in_out_screen.dart';
 import 'package:hr_attendance_app/features/attendance/presentation/screens/attendance_reports_tab_screen.dart';
 import 'package:hr_attendance_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 
@@ -10,8 +11,11 @@ import '../../features/auth/presentation/cubit/auth_state.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../features/dashboard/presentation/screens/more_actions_screen.dart';
+import '../../features/dashboard/presentation/screens/system_activity_screen.dart';
 import '../../features/employee/presentation/pages/employee_details_page.dart';
 import '../../features/employee/presentation/pages/employee_list_page.dart';
+import '../../features/permissions/presentation/screens/user_permissions_screen.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
 
@@ -19,6 +23,14 @@ class AppRouter {
   AppRouter._();
 
   static GoRouter build({required AuthCubit authCubit, required OnboardingStorage onboardingStorage}) {
+    bool has(String permission) {
+      final user = authCubit.state.currentUser;
+      if (user?.hasPermission(permission) == true) return true;
+      if (!permission.endsWith('.View')) return false;
+      final base = permission.substring(0, permission.length - 5);
+      return user?.hasPermission('$base.Manage') == true || user?.hasPermission('$base.Edit') == true;
+    }
+
     return GoRouter(
       initialLocation: AppRoutes.splash,
       refreshListenable: GoRouterRefreshStream(authCubit.stream),
@@ -33,6 +45,15 @@ class AppRouter {
           if (!onboardingDone) return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
           return onAuthScreen ? null : AppRoutes.login;
         }
+        final permissionByRoute = <String, String>{
+          AppRoutes.employees: 'Employees.View',
+          AppRoutes.attendanceActions: 'Attendance.Manage',
+          AppRoutes.attendanceCheckInOut: 'Attendance.Manage',
+          AppRoutes.permissions: 'Permissions.View',
+          AppRoutes.auditLogs: 'AuditLogs.View',
+        };
+        final required = permissionByRoute[loc];
+        if (required != null && !has(required)) return AppRoutes.home;
         if (onAuthScreen || loc == AppRoutes.splash || loc == AppRoutes.onboarding) return AppRoutes.home;
         return null;
       },
@@ -43,9 +64,14 @@ class AppRouter {
         GoRoute(path: AppRoutes.register, builder: (context, state) => const RegisterScreen()),
         GoRoute(path: AppRoutes.home, builder: (context, state) => const DashboardPage()),
         GoRoute(path: AppRoutes.employees, builder: (context, state) => const EmployeeListPage()),
-        GoRoute(path: '/employees/:id', builder: (context, state) => EmployeeDetailsPage(employeeId: int.parse(state.pathParameters['id']!))),
+        GoRoute(path: '/employees/:id', builder: (context, state) => EmployeeDetailsPage(employeeId: int.parse(state.pathParameters['id']!)),),
+        GoRoute(path: AppRoutes.attendanceCheckInOut, builder: (context, state) => const AttendanceCheckInOutScreen()),
         GoRoute(path: AppRoutes.attendanceActions, builder: (context, state) => AttendanceActionsScreen(initialTabIndex: int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0)),
         GoRoute(path: AppRoutes.attendanceReports, builder: (context, state) => const AttendanceReportsTabScreen()),
+        GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
+        GoRoute(path: AppRoutes.auditLogs, builder: (context, state) => const AuditLogsScreen()),
+        GoRoute(path: '/more', builder: (context, state) => const MoreActionsScreen()),
+        GoRoute(path: AppRoutes.permissions, builder: (context, state) => UserPermissionsScreen(initialUserId: int.tryParse(state.uri.queryParameters['userId'] ?? ''))),
       ],
     );
   }
