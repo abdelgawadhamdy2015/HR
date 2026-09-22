@@ -49,9 +49,7 @@ class AppRouter {
           AppRoutes.employees: 'Employees.View',
           AppRoutes.attendanceActions: 'Attendance.Manage',
           AppRoutes.attendanceCheckInOut: 'Attendance.Manage',
-          AppRoutes.attendanceReports: 'Reports.View',
           AppRoutes.permissions: 'Permissions.View',
-          AppRoutes.notifications: 'Notifications.View',
           AppRoutes.auditLogs: 'AuditLogs.View',
         };
         final required = permissionByRoute[loc];
