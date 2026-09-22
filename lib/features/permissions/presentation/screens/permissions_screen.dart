@@ -176,7 +176,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<int>(
-                    value: selectedExists ? _selectedUserId : null,
+                    initialValue: selectedExists ? _selectedUserId : null,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'المستخدم',
@@ -187,11 +187,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       return DropdownMenuItem<int>(
                         value: user.id,
                         child: Text(
-                          user.displayName +
-                              ' (@' +
-                              user.username +
-                              ') • #' +
-                              user.id.toString(),
+                          user.displayName,
                         ),
                       );
                     }).toList(),
@@ -283,12 +279,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             children: [
               TextFormField(
                 controller: nameController,
-                decoration:
-                    const InputDecoration(labelText: 'اسم الصلاحية'),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty
-                        ? 'أدخل اسم الصلاحية'
-                        : null,
+                decoration: const InputDecoration(labelText: 'اسم الصلاحية'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'أدخل اسم الصلاحية'
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(

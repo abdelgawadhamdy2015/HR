@@ -34,7 +34,8 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
   Future<void> load() async {
     emit(const PermissionsLoading());
-    final results = await Future.wait([getPermissions(const NoParams()), getUsers()]);
+    final results =
+        await Future.wait([getPermissions(const NoParams()), getUsers()]);
     final permissionResult = results[0] as Result<List<Permission>>;
     final usersResult = results[1] as Result<List<UserSummary>>;
 
@@ -42,7 +43,8 @@ class PermissionsCubit extends Cubit<PermissionsState> {
       (failure) => emit(PermissionsError(failure.message)),
       (permissions) => usersResult.fold(
         (failure) => emit(PermissionsError(failure.message)),
-        (users) => emit(PermissionsLoaded(permissions: permissions, users: users)),
+        (users) =>
+            emit(PermissionsLoaded(permissions: permissions, users: users)),
       ),
     );
   }
@@ -68,6 +70,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
   void togglePermission(int permissionId, bool enabled) {
     final current = _loadedState;
     if (current == null) return;
+
     final ids = {...current.selectedPermissionIds};
     enabled ? ids.add(permissionId) : ids.remove(permissionId);
     emit(current.copyWith(selectedPermissionIds: ids));
@@ -109,13 +112,21 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     );
   }
 
-  Future<void> assign({required int userId, required int permissionId}) => _changeAssignment(
-    action: () => assignPermission(userId: userId, permissionId: permissionId), userId: userId);
+  Future<void> assign({required int userId, required int permissionId}) =>
+      _changeAssignment(
+          action: () =>
+              assignPermission(userId: userId, permissionId: permissionId),
+          userId: userId);
 
-  Future<void> revoke({required int userId, required int permissionId}) => _changeAssignment(
-    action: () => revokePermission(userId: userId, permissionId: permissionId), userId: userId);
+  Future<void> revoke({required int userId, required int permissionId}) =>
+      _changeAssignment(
+          action: () =>
+              revokePermission(userId: userId, permissionId: permissionId),
+          userId: userId);
 
-  Future<void> _changeAssignment({required Future<Result<void>> Function() action, required int userId}) async {
+  Future<void> _changeAssignment(
+      {required Future<Result<void>> Function() action,
+      required int userId}) async {
     final current = _loadedState;
     if (current == null) return;
     emit(PermissionActionLoading(current));

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:hr_attendance_app/features/permissions/data/models/update_user_permissions_request.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/api_constants.dart';
@@ -50,7 +51,8 @@ class PermissionsRemoteDataSourceImpl implements PermissionsRemoteDataSource {
         throw ServerException('Invalid users response');
       }
       return (response.data as List)
-          .map((item) => UserSummaryModel.fromJson(item as Map<String, dynamic>))
+          .map(
+              (item) => UserSummaryModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _mapDioError(e);
@@ -58,7 +60,8 @@ class PermissionsRemoteDataSourceImpl implements PermissionsRemoteDataSource {
   }
 
   @override
-  Future<PermissionModel> create({required String name, String? description}) async {
+  Future<PermissionModel> create(
+      {required String name, String? description}) async {
     try {
       final response = await dio.post(
         ApiConstants.permissions,
@@ -100,9 +103,11 @@ class PermissionsRemoteDataSourceImpl implements PermissionsRemoteDataSource {
     required List<int> permissionIds,
   }) async {
     try {
-      final response = await dio.put(
-        ApiConstants.updateUserPermissions(userId),
-        data: {'permissionIds': permissionIds},
+      final response = await dio.post(
+        ApiConstants.updateUserPermissions,
+        data: UpdateUserPermissionsRequest(
+                permissionIds: permissionIds, userId: userId)
+            .toMap(),
       );
       return _parsePermissions(response.data);
     } on DioException catch (e) {
